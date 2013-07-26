@@ -183,7 +183,7 @@ class GoogleMusic(LEAP):
 class DeviceHandler(tornado.web.RequestHandler):
 
     device = string.Template("""<?xml version="1.0" encoding="utf-8"?>
-    <root xmlns="urn:schemas-upnp-org:device-1-0">
+    <root xmlns="urn:schemas-upnp-org:device-1-0" xmlns:r="urn:restful-tv-org:schemas:upnp-dd">
       <specVersion>
         <major>1</major>
         <minor>0</minor>
@@ -216,7 +216,6 @@ class DeviceHandler(tornado.web.RequestHandler):
         gservice = "\n".join( [
             LEAP.toInfo(ChromeCast.service, cc_status),
             LEAP.toInfo(YouTube.service, yt_status),
-            LEAP.toInfo(Fling.service, fl_status),
             LEAP.toInfo(PlayMovies.service, pm_status),
             LEAP.toInfo(GoogleMusic.service, gm_status),
         ])
