@@ -9,24 +9,26 @@ import tornado.web
 import tornado.websocket
 import threading
 import string
+import argparse
+from textwrap import dedent
 
 yt_status = dict(state="stopped", link="")
 cc_status = dict(state="stopped", link="")
 pm_status = dict(state="stopped", link="")
 gm_status = dict(state="stopped", link="")
 
-MS = """HTTP/1.1 200 OK\r
-LOCATION: http://$ip:8008/ssdp/device-desc.xml\r
-CACHE-CONTROL: max-age=1800\r
-CONFIGID.UPNP.ORG: 7337\r
-BOOTID.UPNP.ORG: 7337\r
-USN: uuid:3e1cc7c0-f4f3-11e2-b778-0800200c9a66::urn:dial-multiscreen-org:service:dial:1\r
-ST: urn:dial-multiscreen-org:service:dial:1\r
-\r
-"""
 class SSDP(DatagramProtocol):
     SSDP_ADDR = '239.255.255.250'
     SSDP_PORT = 1900
+    MS = """HTTP/1.1 200 OK\r
+    LOCATION: http://$ip:8008/ssdp/device-desc.xml\r
+    CACHE-CONTROL: max-age=1800\r
+    CONFIGID.UPNP.ORG: 7337\r
+    BOOTID.UPNP.ORG: 7337\r
+    USN: uuid:3e1cc7c0-f4f3-11e2-b778-0800200c9a66::urn:dial-multiscreen-org:service:dial:1\r
+    ST: urn:dial-multiscreen-org:service:dial:1\r
+    \r
+    """
 
     def __init__(self, iface):
         self.iface = iface
@@ -40,13 +42,14 @@ class SSDP(DatagramProtocol):
         self.ssdp.stopListening()
 
     def datagramReceived(self, datagram, address):
+        print datagram
         if "urn:dial-multiscreen-org:service:dial:1" in datagram and "M-SEARCH" in datagram:
-            self.ssdp.write(string.Template(MS).substitute(ip=self.iface), address)
+            self.ssdp.write(string.Template(dedent(self.MS)).substitute(ip=self.iface), address)
 
 class LEAP(tornado.web.RequestHandler):
 
-    service = string.Template("None")
-    ip = "0.0.0.0"
+    service = None
+    ip = None
 
     def prepare(self):
         print self.request
@@ -67,14 +70,14 @@ class LEAP(tornado.web.RequestHandler):
         return "http://%s/apps/%s/run" % (self.ip, app )
 
     def _toXML(self, data):
-        return self.service.substitute(data)
+        return string.Template(dedent(self.service)).substitute(data)
 
     @staticmethod
     def toInfo(service, data):
-        return service.substitute(data)
+        return string.Template(dedent(service)).substitute(data)
 
 class ChromeCast(LEAP):
-    service = string.Template("""<service xmlns="urn:chrome.google.com:cast">
+    service = """<service xmlns="urn:chrome.google.com:cast">
         <name>ChromeCast</name>
         <options allowStop="true"/>
         <activity-status>
@@ -90,7 +93,7 @@ class ChromeCast(LEAP):
         <state>$state</state>
         $link
     </service>
-    """)
+    """
 
     def get(self):
         global cc_status
@@ -108,13 +111,13 @@ class ChromeCast(LEAP):
         self._response(cc_status)
 
 class YouTube(LEAP):
-    service = string.Template("""<service xmlns="urn:dial-multiscreen-org:schemas:dial">
+    service = """<service xmlns="urn:dial-multiscreen-org:schemas:dial">
         <name>YouTube</name>
         <options allowStop="true"/>
         <state>$state</state>
         $link
     </service>
-    """)
+    """
 
     def get(self):
         global yt_status
@@ -132,13 +135,13 @@ class YouTube(LEAP):
         self._response(yt_status)
 
 class PlayMovies(LEAP):
-    service = string.Template("""<service xmlns="urn:dial-multiscreen-org:schemas:dial">
+    service = """<service xmlns="urn:dial-multiscreen-org:schemas:dial">
         <name>PlayMovies</name>
         <options allowStop="true"/>
         <state>$state</state>
         $link
     </service>
-    """)
+    """
 
     def get(self):
         global pm_status
@@ -156,13 +159,13 @@ class PlayMovies(LEAP):
         self._response(pm_status)
 
 class GoogleMusic(LEAP):
-    service = string.Template("""<service xmlns="urn:dial-multiscreen-org:schemas:dial">
+    service = """<service xmlns="urn:dial-multiscreen-org:schemas:dial">
         <name>GoogleMusic</name>
         <options allowStop="true"/>
         <state>$state</state>
         $link
     </service>
-    """)
+    """
 
     def get(self):
         global gm_status
@@ -181,7 +184,7 @@ class GoogleMusic(LEAP):
 
 class DeviceHandler(tornado.web.RequestHandler):
 
-    device = string.Template("""<?xml version="1.0" encoding="utf-8"?>
+    device = """<?xml version="1.0" encoding="utf-8"?>
     <root xmlns="urn:schemas-upnp-org:device-1-0" xmlns:r="urn:restful-tv-org:schemas:upnp-dd">
       <specVersion>
         <major>1</major>
@@ -206,7 +209,7 @@ class DeviceHandler(tornado.web.RequestHandler):
         $services
         </serviceList>
       </device>
-    </root>""")
+    </root>"""
 
     def get(self):
         self.add_header("Application-URL","http://%s/apps" % self.request.host)
@@ -218,7 +221,7 @@ class DeviceHandler(tornado.web.RequestHandler):
             LEAP.toInfo(PlayMovies.service, pm_status),
             LEAP.toInfo(GoogleMusic.service, gm_status),
         ])
-        self.write(self.device.substitute(dict(services=gservice )))
+        self.write(string.Template(dedent(self.device)).substitute(dict(services=gservice )))
 
 class WebSocketCast(tornado.websocket.WebSocketHandler):
 
@@ -248,11 +251,14 @@ class HTTPThread(threading.Thread):
 
 if __name__ == "__main__":
 
+    parser = argparse.ArgumentParser()
+    parser.add_argument('iface', help='Interface you want to bind to (for example 192.168.1.22)')
+    args = parser.parse_args()
+
     HTTPThread().start()
     def LeapUPNPServer():
-        ip = "192.168.3.22"
-        print "Listening on %s" % ip 
-        sobj = SSDP(ip)
+        print "Listening on %s" % args.iface
+        sobj = SSDP(args.iface)
         reactor.addSystemEventTrigger('before', 'shutdown', sobj.stop)
 
     reactor.callWhenRunning(LeapUPNPServer)
