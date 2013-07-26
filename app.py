@@ -12,7 +12,6 @@ import string
 
 yt_status = dict(state="stopped", link="")
 cc_status = dict(state="stopped", link="")
-fl_status = dict(state="stopped", link="")
 pm_status = dict(state="stopped", link="")
 gm_status = dict(state="stopped", link="")
 
@@ -239,7 +238,6 @@ class HTTPThread(threading.Thread):
             (r"/ssdp/device-desc.xml", DeviceHandler),
             (r"/apps/ChromeCast", ChromeCast),
             (r"/apps/YouTube", YouTube),
-            (r"/apps/Fling", Fling),
             (r"/apps/PlayMovies", PlayMovies),
             (r"/apps/GoogleMusic", GoogleMusic),
             (r"/connection", WebSocketCast),
