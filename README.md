@@ -5,7 +5,7 @@ Simple ChromeCast emulation app.
 
 Working:
 
- - Disocovery
+ - Discovery
  - Default apps
 
 
