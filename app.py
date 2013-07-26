@@ -17,7 +17,7 @@ pm_status = dict(state="stopped", link="")
 gm_status = dict(state="stopped", link="")
 
 MS = """HTTP/1.1 200 OK\r
-LOCATION: http://192.168.3.22:8008/ssdp/device-desc.xml\r
+LOCATION: http://$ip:8008/ssdp/device-desc.xml\r
 CACHE-CONTROL: max-age=1800\r
 CONFIGID.UPNP.ORG: 7337\r
 BOOTID.UPNP.ORG: 7337\r
@@ -42,18 +42,30 @@ class SSDP(DatagramProtocol):
 
     def datagramReceived(self, datagram, address):
         if "urn:dial-multiscreen-org:service:dial:1" in datagram and "M-SEARCH" in datagram:
-            self.ssdp.write(MS, address)
+            self.ssdp.write(string.Template(MS).substitute(ip=self.iface), address)
 
 class LEAP(tornado.web.RequestHandler):
+
     service = string.Template("None")
+    ip = "0.0.0.0"
+
     def prepare(self):
         print self.request
         print self.request.body
+        self.ip = self.request.host
+
     def _response(self, data):
         self.set_header("Content-Type", "application/xml; charset=UTF-8")
         self.set_header("Cache-control", "no-cache, must-revalidate, no-store")
         self.set_header("Etag", "")
         self.finish(self._toXML(data))
+
+    def post(self):
+        self.set_status(201, "Created")
+        self.set_header("Location", self._getLocation(self.__class__.__name__))
+
+    def _getLocation(self, app):
+        return "http://%s/apps/%s/run" % (self.ip, app )
 
     def _toXML(self, data):
         return self.service.substitute(data)
@@ -71,8 +83,6 @@ class ChromeCast(LEAP):
             <image src="http://www.mopidy.com/media/images/penguin_speakers.jpg"/>
         </activity-status>
         <servicedata>
-            <connectionSvcURL>http://192.168.3.22:8008/apps/ChromeCast</connectionSvcURL>
-            <applicationContext>Home</applicationContext>
             <protocols>
                 <protocol>video_playback</protocol>
                 <protocol>audio_playback</protocol>
@@ -89,8 +99,7 @@ class ChromeCast(LEAP):
 
     def post(self):
         global cc_status
-        self.set_status(201, "CREATED")
-        self.set_header("Location", "http://192.168.3.22:8008/apps/ChromeCast/run")
+        super(ChromeCast, self).post()
         cc_status = dict(state="running", link="""<link rel="run" href="run"/>""")
         self._response(cc_status)
 
@@ -114,8 +123,7 @@ class YouTube(LEAP):
 
     def post(self):
         global yt_status
-        self.set_status(201, "CREATED")
-        self.set_header("Location", "http://192.168.3.22:8008/apps/YouTube/run")
+        super(YouTube, self).post()
         yt_status = dict(state="running", link="""<link rel="run" href="run"/>""")
         self._response(yt_status)
 
@@ -123,31 +131,6 @@ class YouTube(LEAP):
         global yt_status
         yt_status = dict(state="stopped", link="")
         self._response(yt_status)
-
-class Fling(LEAP):
-    service = string.Template("""<service xmlns="urn:dial-multiscreen-org:schemas:dial">
-        <name>Fling</name>
-        <options allowStop="true"/>
-        <state>$state</state>
-        $link
-    </service>
-    """)
-
-    def get(self):
-        global fl_status
-        self._response(fl_status)
-
-    def post(self):
-        global fl_status
-        self.set_status(201, "Created")
-        self.set_header("Location", "http://192.168.3.22:8008/apps/Fling/run")
-        fl_status = dict(state="running", link="""<link rel="run" href="run"/>""")
-        self._response(fl_status)
-
-    def delete(self):
-        global fl_status
-        fl_status = dict(state="stopped", link="")
-        self._response(fl_status)
 
 class PlayMovies(LEAP):
     service = string.Template("""<service xmlns="urn:dial-multiscreen-org:schemas:dial">
@@ -164,8 +147,7 @@ class PlayMovies(LEAP):
 
     def post(self):
         global pm_status
-        self.set_status(201, "Created")
-        self.set_header("Location", "http://192.168.3.22:8008/apps/PlayMovies/run")
+        super(PlayMovies, self).post()
         pm_status = dict(state="running", link="""<link rel="run" href="run"/>""")
         self._response(pm_status)
 
@@ -189,8 +171,7 @@ class GoogleMusic(LEAP):
 
     def post(self):
         global gm_status
-        self.set_status(201, "Created")
-        self.set_header("Location", "http://192.168.3.22:8008/apps/GoogleMusic/run")
+        super(GoogleMusic, self).post()
         gm_status = dict(state="running", link="""<link rel="run" href="run"/>""")
         self._response(gm_status)
 
@@ -207,7 +188,7 @@ class DeviceHandler(tornado.web.RequestHandler):
         <major>1</major>
         <minor>0</minor>
       </specVersion>
-      <URLBase>/moje</URLBase>
+      <URLBase>/</URLBase>
       <device>
         <deviceType>urn:schemas-upnp-org:device:tvdevice:1</deviceType>
         <friendlyName>Mopidy</friendlyName>
@@ -229,7 +210,7 @@ class DeviceHandler(tornado.web.RequestHandler):
     </root>""")
 
     def get(self):
-        self.add_header("Application-URL","http://192.168.3.22:8008/apps")
+        self.add_header("Application-URL","http://%s/apps" % self.request.host)
         self.set_header("Content-Type", "application/xml; charset=UTF-8")
         self.set_header("Cache-control", "no-cache")
         gservice = "\n".join( [
@@ -271,9 +252,11 @@ class HTTPThread(threading.Thread):
 if __name__ == "__main__":
 
     HTTPThread().start()
-    def main(iface):
-        sobj = SSDP(iface)
+    def LeapUPNPServer():
+        ip = "192.168.3.22"
+        print "Listening on %s" % ip 
+        sobj = SSDP(ip)
         reactor.addSystemEventTrigger('before', 'shutdown', sobj.stop)
 
-    reactor.callWhenRunning(main, "192.168.3.22")
+    reactor.callWhenRunning(LeapUPNPServer)
     reactor.run()
