@@ -40,4 +40,4 @@ optional arguments:
 
 Install Google Chrome, then run
 
-```python2 app.yp ip_of_this_device --name "My super name"```
+```python2 app.py ip_of_this_device --name "My super name"```
