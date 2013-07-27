@@ -14,16 +14,12 @@ import signal
 import logging
 from textwrap import dedent
 import shlex, subprocess
+import json
 
-yt_status = dict(state="stopped", link="")
-cc_status = dict(state="stopped", link="")
-pm_status = dict(state="stopped", link="")
-gm_status = dict(state="stopped", link="")
-gcsa_status = dict(state="stopped", link="")
-gcp_status = dict(state="stopped", link="")
+status = dict()
 
 friendlyName = "Mopidy"
-user_agent ="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) CrKey/30.0.1573.2 Safari/537.36"
+user_agent ="Mozilla/5.0 (CrKey - 0.0.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/30.0.1573.2 Safari/537.36"
 chrome = "/opt/google/chrome/chrome"
 
 class SSDP(DatagramProtocol):
@@ -57,33 +53,67 @@ ST: urn:dial-multiscreen-org:service:dial:1\r
 
 class LEAP(tornado.web.RequestHandler):
 
-    service = None
+    service =  """<service xmlns="urn:dial-multiscreen-org:schemas:dial">
+        <name>$name</name>
+        <options allowStop="true"/>
+        <state>$state</state>
+        $link
+    </service>
+    """
     ip = None
     url = "$query"
 
     def prepare(self):
+        global status
+        if self.__class__.__name__ not in status:
+            status[self.__class__.__name__ ] = dict(name=self.__class__.__name__ , state="stopped", link="", pid=None)
         self.ip = self.request.host
 
-    def _response(self, data):
+    def get_app_status(self):
+        return status[self.__class__.__name__ ]
+
+    def set_app_status(self, app_status):
+        global status
+        app_status["name"] = self.__class__.__name__ 
+        status[self.__class__.__name__ ] = app_status
+
+    def _response(self):
         self.set_header("Content-Type", "application/xml; charset=UTF-8")
         self.set_header("Cache-control", "no-cache, must-revalidate, no-store")
-        self.set_header("Etag", "")
-        self.finish(self._toXML(data))
+        self.finish(self._toXML(self.get_app_status()))
 
     def post(self):
+        """Start app"""
         self.set_status(201)
         self.set_header("Location", self._getLocation(self.__class__.__name__))
-        self.launch(self.request.body)
+        pid = self.launch(self.request.body)
+        self.set_app_status(dict(state="running", link="""<link rel="run" href="run"/>""", pid=pid))
+        self._response()
+
+    def get(self):
+        """Status of an app"""
+
+        if self.get_app_status()["pid"]:
+            # app crashed or closed
+            if self.get_app_status()["pid"].poll() is not None:
+                self.set_app_status(dict(name=self.__class__.__name__ , state="stopped", link="", pid=None))
+        self._response()
+
+    def delete(self):
+        """Close app"""
+        self.destroy(self.get_app_status()["pid"])
+        self.set_app_status(dict(name=self.__class__.__name__ , state="stopped", link="", pid=None))
+        self._response()
 
     def _getLocation(self, app):
         return "http://%s/apps/%s/run" % (self.ip, app )
 
     def launch(self, data):
         appurl = string.Template(self.url).substitute(query=data)
-        command_line ="""%s --app="%s" --user-agent="%s"  """  % (chrome, appurl, user_agent)
+        command_line ="""%s --incognito --kiosk --app="%s" --user-agent="%s"  """  % (chrome, appurl, user_agent)
         print(command_line)
         args = shlex.split(command_line)
-        self.pid = subprocess.Popen(args)
+        return subprocess.Popen(args)
 
     def destroy(self, pid):
         pid.terminate()
@@ -91,9 +121,12 @@ class LEAP(tornado.web.RequestHandler):
     def _toXML(self, data):
         return string.Template(dedent(self.service)).substitute(data)
 
-    @staticmethod
-    def toInfo(service, data):
-        return string.Template(dedent(service)).substitute(data)
+    @classmethod
+    def toInfo(cls):
+        global status
+        if cls.__name__ not in status:
+            status[cls.__name__ ] = dict(name=cls.__name__ , state="stopped", link="", pid=None)
+        return string.Template(dedent(cls.service)).substitute(status[cls.__name__])
 
 class ChromeCast(LEAP):
     service = """<service xmlns="urn:chrome.google.com:cast">
@@ -115,142 +148,24 @@ class ChromeCast(LEAP):
     """
     url = "https://www.gstatic.com/cv/receiver.html?$query"
 
-    def get(self):
-        global cc_status
-        self._response(cc_status)
-
-    def post(self):
-        global cc_status
-        super(ChromeCast, self).post()
-        cc_status = dict(state="running", link="""<link rel="run" href="run"/>""")
-        self._response(cc_status)
-
-    def delete(self):
-        global cc_status
-        cc_status = dict(state="stopped", link="")
-        self._response(cc_status)
-
 class YouTube(LEAP):
-    service = """<service xmlns="urn:dial-multiscreen-org:schemas:dial">
-        <name>YouTube</name>
-        <options allowStop="true"/>
-        <state>$state</state>
-        $link
-    </service>
-    """
     url = "https://www.youtube.com/tv?$query"
 
-    def get(self):
-        global yt_status
-        self._response(yt_status)
-
-    def post(self):
-        global yt_status
-        super(YouTube, self).post()
-        yt_status = dict(state="running", link="""<link rel="run" href="run"/>""", pid=self.pid)
-        self._response(yt_status)
-
-    def delete(self):
-        global yt_status
-        yt_status = dict(state="stopped", link="")
-        self._response(yt_status)
-
 class PlayMovies(LEAP):
-    service = """<service xmlns="urn:dial-multiscreen-org:schemas:dial">
-        <name>PlayMovies</name>
-        <options allowStop="true"/>
-        <state>$state</state>
-        $link
-    </service>
-    """
     url = "https://play.google.com/video/avi/eureka?$query"
 
-    def get(self):
-        global pm_status
-        self._response(pm_status)
-
-    def post(self):
-        global pm_status
-        super(PlayMovies, self).post()
-        pm_status = dict(state="running", link="""<link rel="run" href="run"/>""")
-        self._response(pm_status)
-
-    def delete(self):
-        global pm_status
-        pm_status = dict(state="stopped", link="")
-        self._response(pm_status)
-
 class GoogleMusic(LEAP):
-    service = """<service xmlns="urn:dial-multiscreen-org:schemas:dial">
-        <name>GoogleMusic</name>
-        <options allowStop="true"/>
-        <state>$state</state>
-        $link
-    </service>
-    """
     url = "https://play.google.com/music/cast/player"
-    def get(self):
-        global gm_status
-        self._response(gm_status)
-
-    def post(self):
-        global gm_status
-        super(GoogleMusic, self).post()
-        gm_status = dict(state="running", link="""<link rel="run" href="run"/>""")
-        self._response(gm_status)
-
-    def delete(self):
-        global gm_status
-        gm_status = dict(state="stopped", link="")
-        self._response(gm_status)
 
 class GoogleCastSampleApp(LEAP):
-    service = """<service xmlns="urn:dial-multiscreen-org:schemas:dial">
-        <name>GoogleCastSampleApp</name>
-        <options allowStop="true"/>
-        <state>$state</state>
-        $link
-    </service>
-    """
     url = "http://anzymrcvr.appspot.com/receiver/anzymrcvr.html"
-    def get(self):
-        global gcsa_status
-        self._response(gcsa_status)
 
-    def post(self):
-        global gcsa_status
-        super(GoogleCastSampleApp, self).post()
-        gcsa_status = dict(state="running", link="""<link rel="run" href="run"/>""")
-        self._response(gcsa_status)
-
-    def delete(self):
-        global gcsa_status
-        gcsa_status = dict(state="stopped", link="")
-        self._response(gcsa_status)
 
 class GoogleCastPlayer(LEAP):
-    service = """<service xmlns="urn:dial-multiscreen-org:schemas:dial">
-        <name>GoogleCastPlayer</name>
-        <options allowStop="true"/>
-        <state>$state</state>
-        $link
-    </service>
-    """
     url = "http://anzymrcvr.appspot.com/receiver/anzymrcvr.html"
-    def get(self):
-        global gcp_status
-        self._response(gcp_status)
 
-    def post(self):
-        global gcp_status
-        super(GoogleCastPlayer, self).post()
-        gcp_status = dict(state="running", link="""<link rel="run" href="run"/>""")
-        self._response(gcp_status)
-
-    def delete(self):
-        global gcp_status
-        gcp_status = dict(state="stopped", link="")
-        self._response(gcp_status)
+class Fling(LEAP):
+    url = "http://anzymrcvr.appspot.com/receiver/anzymrcvr.html"
 
 class DeviceHandler(tornado.web.RequestHandler):
 
@@ -260,7 +175,7 @@ class DeviceHandler(tornado.web.RequestHandler):
         <major>1</major>
         <minor>0</minor>
       </specVersion>
-      <URLBase>/</URLBase>
+      <URLBase>$path</URLBase>
       <device>
         <deviceType>urn:schemas-upnp-org:device:tvdevice:1</deviceType>
         <friendlyName>$friendlyName</friendlyName>
@@ -282,18 +197,20 @@ class DeviceHandler(tornado.web.RequestHandler):
     </root>"""
 
     def get(self):
-        self.add_header("Application-URL","http://%s/apps" % self.request.host)
+        path = "http://%s/apps" % self.request.host
+        self.add_header("Application-URL",path)
         self.set_header("Content-Type", "application/xml; charset=UTF-8")
         self.set_header("Cache-control", "no-cache")
         gservice = "\n".join( [
-            LEAP.toInfo(ChromeCast.service, cc_status),
-            LEAP.toInfo(YouTube.service, yt_status),
-            LEAP.toInfo(PlayMovies.service, pm_status),
-            LEAP.toInfo(GoogleMusic.service, gm_status),
-            LEAP.toInfo(GoogleCastSampleApp.service, gcsa_status),
-            LEAP.toInfo(GoogleCastPlayer.service, gcp_status),
+            ChromeCast.toInfo(),
+            YouTube.toInfo(),
+            PlayMovies.toInfo(),
+            GoogleMusic.toInfo(),
+            GoogleCastSampleApp.toInfo(),
+            GoogleCastPlayer.toInfo(),
+            Fling.toInfo(),
         ])
-        self.write(string.Template(dedent(self.device)).substitute(dict(services=gservice, friendlyName=friendlyName )))
+        self.write(string.Template(dedent(self.device)).substitute(dict(services=gservice, friendlyName=friendlyName, path=path )))
 
 class WebSocketCast(tornado.websocket.WebSocketHandler):
 
@@ -301,10 +218,19 @@ class WebSocketCast(tornado.websocket.WebSocketHandler):
         logging.info("WebSocket opened")
 
     def on_message(self, message):
-        logging.info("ws: %s" % message)
+        cmd = json.loads(message)
+        print(cmd)
+        if cmd["type"] == "REGISTER":
+            self.new_request()
 
     def on_close(self):
         logging.info("WebSocket opened")
+
+    def new_chanell(self):
+        self.write_message((json.dumps({"type":"NEWCHANNEL"})))
+
+    def new_request(self):
+        self.write_message((json.dumps({"type":"CHANNELREQUEST", "requestId": "123456"})))
 
 class HTTPThread(threading.Thread):
    
@@ -312,14 +238,18 @@ class HTTPThread(threading.Thread):
 
         self.application = tornado.web.Application([
             (r"/ssdp/device-desc.xml", DeviceHandler),
+
+            (r"/apps", DeviceHandler),
             (r"/apps/ChromeCast", ChromeCast),
             (r"/apps/YouTube", YouTube),
             (r"/apps/PlayMovies", PlayMovies),
             (r"/apps/GoogleMusic", GoogleMusic),
             (r"/apps/GoogleCastSampleApp", GoogleCastSampleApp),
             (r"/apps/GoogleCastPlayer", GoogleCastPlayer),
+            (r"/apps/Fling", Fling),
+
             (r"/connection", WebSocketCast),
-            (r"/apps", DeviceHandler),
+            (r"/system/control", WebSocketCast),
         ])
         self.application.listen(8008)
         tornado.ioloop.IOLoop.instance().start()
