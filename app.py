@@ -10,41 +10,45 @@ import tornado.websocket
 import threading
 import string
 import argparse
+import signal
+import logging
 from textwrap import dedent
+import sys
 
 yt_status = dict(state="stopped", link="")
 cc_status = dict(state="stopped", link="")
 pm_status = dict(state="stopped", link="")
 gm_status = dict(state="stopped", link="")
+friendlyName = "Mopidy"
 
 class SSDP(DatagramProtocol):
     SSDP_ADDR = '239.255.255.250'
     SSDP_PORT = 1900
     MS = """HTTP/1.1 200 OK\r
-    LOCATION: http://$ip:8008/ssdp/device-desc.xml\r
-    CACHE-CONTROL: max-age=1800\r
-    CONFIGID.UPNP.ORG: 7337\r
-    BOOTID.UPNP.ORG: 7337\r
-    USN: uuid:3e1cc7c0-f4f3-11e2-b778-0800200c9a66::urn:dial-multiscreen-org:service:dial:1\r
-    ST: urn:dial-multiscreen-org:service:dial:1\r
-    \r
-    """
+LOCATION: http://$ip:8008/ssdp/device-desc.xml\r
+CACHE-CONTROL: max-age=1800\r
+CONFIGID.UPNP.ORG: 7337\r
+BOOTID.UPNP.ORG: 7337\r
+USN: uuid:3e1cc7c0-f4f3-11e2-b778-0800200c9a66::urn:dial-multiscreen-org:service:dial:1\r
+ST: urn:dial-multiscreen-org:service:dial:1\r
+\r
+"""
 
     def __init__(self, iface):
         self.iface = iface
-        self.ssdp = reactor.listenMulticast(
+        self.transport = reactor.listenMulticast(
             self.SSDP_PORT, self, listenMultiple=True)
-        self.ssdp.setLoopbackMode(1)
-        self.ssdp.joinGroup(self.SSDP_ADDR, interface=iface)
+        self.transport.setLoopbackMode(1)
+        self.transport.joinGroup(self.SSDP_ADDR, interface=iface)
 
     def stop(self):
-        self.ssdp.leaveGroup(self.SSDP_ADDR, interface=self.iface)
-        self.ssdp.stopListening()
+        self.transport.leaveGroup(self.SSDP_ADDR, interface=self.iface)
+        self.transport.stopListening()
 
     def datagramReceived(self, datagram, address):
-        print datagram
         if "urn:dial-multiscreen-org:service:dial:1" in datagram and "M-SEARCH" in datagram:
-            self.ssdp.write(string.Template(dedent(self.MS)).substitute(ip=self.iface), address)
+            data =string.Template(dedent(self.MS)).substitute(ip=self.iface)
+            self.transport.write(data, address)
 
 class LEAP(tornado.web.RequestHandler):
 
@@ -52,8 +56,6 @@ class LEAP(tornado.web.RequestHandler):
     ip = None
 
     def prepare(self):
-        print self.request
-        print self.request.body
         self.ip = self.request.host
 
     def _response(self, data):
@@ -193,7 +195,7 @@ class DeviceHandler(tornado.web.RequestHandler):
       <URLBase>/</URLBase>
       <device>
         <deviceType>urn:schemas-upnp-org:device:tvdevice:1</deviceType>
-        <friendlyName>Mopidy</friendlyName>
+        <friendlyName>$friendlyName</friendlyName>
         <manufacturer>Google Inc.</manufacturer>
         <modelName>ChromeCast</modelName>
         <UDN>uuid:3e1cc7c0-f4f3-11e2-b778-0800200c9a66</UDN>
@@ -221,23 +223,24 @@ class DeviceHandler(tornado.web.RequestHandler):
             LEAP.toInfo(PlayMovies.service, pm_status),
             LEAP.toInfo(GoogleMusic.service, gm_status),
         ])
-        self.write(string.Template(dedent(self.device)).substitute(dict(services=gservice )))
+        self.write(string.Template(dedent(self.device)).substitute(dict(services=gservice, friendlyName=friendlyName )))
 
 class WebSocketCast(tornado.websocket.WebSocketHandler):
 
     def open(self):
-        print "WebSocket opened"
+        logging.info("WebSocket opened")
 
     def on_message(self, message):
-        print message
+        logging.info("ws: %s" % message)
 
     def on_close(self):
-        print "WebSocket closed"
+        logging.info("WebSocket opened")
 
 class HTTPThread(threading.Thread):
+   
+    def run(self):
 
-     def run(self):
-        application = tornado.web.Application([
+        self.application = tornado.web.Application([
             (r"/ssdp/device-desc.xml", DeviceHandler),
             (r"/apps/ChromeCast", ChromeCast),
             (r"/apps/YouTube", YouTube),
@@ -246,18 +249,39 @@ class HTTPThread(threading.Thread):
             (r"/connection", WebSocketCast),
             (r"/apps", DeviceHandler),
         ])
-        application.listen(8008)
+        self.application.listen(8008)
         tornado.ioloop.IOLoop.instance().start()
+    
+    def shutdown(self, ):
+        logging.info('Stopping HTTP server')
+        reactor.callFromThread(reactor.stop)
+        logging.info('Stopping DIAL server')
+        tornado.ioloop.IOLoop.instance().stop()
+
+    def sig_handler(self, sig, frame):
+        tornado.ioloop.IOLoop.instance().add_callback(self.shutdown)
+        
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
 
     parser = argparse.ArgumentParser()
     parser.add_argument('iface', help='Interface you want to bind to (for example 192.168.1.22)')
+    parser.add_argument('--name', help='Friendly name for this device')
     args = parser.parse_args()
 
-    HTTPThread().start()
+    if args.name:
+        friendlyName = args.name
+        logging.info("Service name is %s" % friendlyName)
+
+    server = HTTPThread()
+    server.start()
+
+    signal.signal(signal.SIGTERM, server.sig_handler)
+    signal.signal(signal.SIGINT, server.sig_handler)
+
     def LeapUPNPServer():
-        print "Listening on %s" % args.iface
+        logging.info("Listening on %s" % args.iface)
         sobj = SSDP(args.iface)
         reactor.addSystemEventTrigger('before', 'shutdown', sobj.stop)
 
