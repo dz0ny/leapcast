@@ -19,5 +19,5 @@ On real device enabled apps are fetched from https://clients3.google.com/cast/ch
 
 TODO:
 
- - Play mode
+ - Play mode (via /opt/google/chrome/chrome "--app=https://www.youtube.com/tv?${POST_DATA}")
  - Remote control via STOMP and Websockets
