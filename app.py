@@ -24,6 +24,7 @@ gcp_status = dict(state="stopped", link="")
 
 friendlyName = "Mopidy"
 user_agent ="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) CrKey/30.0.1573.2 Safari/537.36"
+chrome = "/opt/google/chrome/chrome"
 
 class SSDP(DatagramProtocol):
     SSDP_ADDR = '239.255.255.250'
@@ -79,7 +80,7 @@ class LEAP(tornado.web.RequestHandler):
 
     def launch(self, data):
         appurl = string.Template(self.url).substitute(query=data)
-        command_line ="""/opt/google/chrome/chrome --app="%s" --user-agent="%s"  """  % (appurl, user_agent)
+        command_line ="""%s --app="%s" --user-agent="%s"  """  % (chrome, appurl, user_agent)
         print(command_line)
         args = shlex.split(command_line)
         self.pid = subprocess.Popen(args)
@@ -339,11 +340,21 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('iface', help='Interface you want to bind to (for example 192.168.1.22)')
     parser.add_argument('--name', help='Friendly name for this device')
+    parser.add_argument('--user_agent', help='Custom user agent')
+    parser.add_argument('--chrome', help='Path to Google Chrome executable')
     args = parser.parse_args()
 
     if args.name:
         friendlyName = args.name
         logging.info("Service name is %s" % friendlyName)
+
+    if args.user_agent:
+        user_agent = args.user_agent
+        logging.info("User agent is %s" % user_agent)
+
+    if args.chrome:
+        chrome = args.chrome
+        logging.info("Chrome path is %s" % chrome)
 
     server = HTTPThread()
     server.start()
