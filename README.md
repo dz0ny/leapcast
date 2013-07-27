@@ -5,7 +5,7 @@ Simple ChromeCast emulation app.
 
 Working:
 
- - Discovery
+ - Discovery (DIAL protocol http://www.dial-multiscreen.org/)
  - Default apps
 
 Apps:
