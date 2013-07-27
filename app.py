@@ -71,7 +71,7 @@ class LEAP(tornado.web.RequestHandler):
         self.finish(self._toXML(data))
 
     def post(self):
-        self.set_status(201, "Created")
+        self.set_status(201)
         self.set_header("Location", self._getLocation(self.__class__.__name__))
         self.launch(self.request.body)
 
