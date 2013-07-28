@@ -31,16 +31,20 @@ TODO:
 ## How to run
 
 ```
-usage: app.py [-h] [--name NAME] [--user_agent USER_AGENT] [--chrome CHROME] iface
+usage: app.py [-h] [--name NAME] [--user_agent USER_AGENT] [--chrome CHROME]
+               [--fullscreen]
+               iface
 
 positional arguments:
-  iface                 Interface you want to bind to (for example 192.168.1.22)
+  iface Interface you want to bind to (for example 192.168.1.22)
 
 optional arguments:
   -h, --help              show this help message and exit
   --name NAME             Friendly name for this device
   --user_agent USER_AGENT Custom user agent
   --chrome CHROME         Path to Google Chrome executable
+  --fullscreen            Start in full-screen mode
+
 
 ```
 
