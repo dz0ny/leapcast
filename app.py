@@ -15,8 +15,10 @@ import logging
 from textwrap import dedent
 import shlex, subprocess
 import json
+import copy 
 
 global_status = dict()
+registered_apps = list()
 
 friendlyName = "Mopidy"
 user_agent ="Mozilla/5.0 (CrKey - 0.9.3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/30.0.1573.2 Safari/537.36"
@@ -60,20 +62,27 @@ class LEAP(tornado.web.RequestHandler):
             connectionSvcURL="",
             applicationContext="",
     )
-    service = """<service xmlns="urn:chrome.google.com:cast">
+    service_on = """<service xmlns="urn:dial-multiscreen-org:schemas:dial">
         <name>$name</name>
         <options allowStop="true"/>
-        <activity-status>
-            <description>Experimental Mopidy sink</description>
-            <image src="http://www.mopidy.com/media/images/penguin_speakers.jpg"/>
+        <activity-status xmlns="urn:chrome.google.com:cast">
+            <description>Legacy</description>
+            <image src="https://ssl.gstatic.com/music/fe/d52a0d1566a74f91dffa745a811ff578/favicon.ico"/>
         </activity-status>
-        <servicedata>
+        <servicedata xmlns="urn:chrome.google.com:cast">
             <connectionSvcURL>$connectionSvcURL</connectionSvcURL>
             <applicationContext>$applicationContext</applicationContext>
             <protocols>
                 <protocol>ramp</protocol>
             </protocols>
         </servicedata>
+        <state>$state</state>
+        $link
+    </service>
+    """
+    service_off = """<service xmlns="urn:dial-multiscreen-org:schemas:dial">
+        <name>$name</name>
+        <options allowStop="true"/>
         <state>$state</state>
         $link
     </service>
@@ -85,18 +94,15 @@ class LEAP(tornado.web.RequestHandler):
         return self.__class__.__name__ 
 
     def get_status_dict(self):
-        status = self.application_status
+        status =copy.deepcopy(self.application_status)
         status["name"] = self.get_name()
         return status
 
     def prepare(self):
-        global global_status
-        if self.get_name() not in global_status:
-            global_status[self.get_name()] = self.get_status_dict()
         self.ip = self.request.host
 
     def get_app_status(self):
-        return global_status[self.get_name() ]
+        return global_status.get(self.get_name(), self.get_status_dict())
 
     def set_app_status(self, app_status):
         global global_status
@@ -106,6 +112,7 @@ class LEAP(tornado.web.RequestHandler):
     def _response(self):
         self.set_header("Content-Type", "application/xml; charset=UTF-8")
         self.set_header("Cache-control", "no-cache, must-revalidate, no-store")
+        
         self.finish(self._toXML(self.get_app_status()))
 
     @tornado.web.asynchronous
@@ -118,6 +125,7 @@ class LEAP(tornado.web.RequestHandler):
         status["state"]="running"
         status["link"]="""<link rel="run" href="run"/>"""
         status["pid"]=self.launch(self.request.body)
+        status["connectionSvcURL"]="http://%s/ramp/%s" % (self.ip, self.get_name() )
         
         self.set_app_status(status)
         self._response()
@@ -155,28 +163,29 @@ class LEAP(tornado.web.RequestHandler):
 
     def launch(self, data):
         appurl = string.Template(self.url).substitute(query=data)
-        command_line ="""%s --incognito --kiosk --user-agent="%s"  --app="%s" """  % (chrome, user_agent, appurl)
-        print(command_line)
+        command_line ="""%s --incognito --kiosk --user-agent="%s"  --app="%s" """  % (chrome, user_agent, appurl.replace("&idle=windowclose",""))
         args = shlex.split(command_line)
         return subprocess.Popen(args)
 
     def destroy(self, pid):
-        print pid
         if pid is not None:
             pid.terminate()
 
     def _toXML(self, data):
-        return string.Template(dedent(self.service)).substitute(data)
+        if data["pid"] is not None:
+            return string.Template(dedent(self.service_on)).substitute(data)
+        else:
+            return string.Template(dedent(self.service_off)).substitute(data)
 
     @classmethod
     def toInfo(cls):
-        global global_status
-        if cls.__name__ not in global_status:
-            status = cls.application_status
-            status["name"] = cls.__name__ 
-            global_status[cls.__name__ ] = status
-        return string.Template(dedent(cls.service)).substitute(global_status[cls.__name__])
-
+        data = copy.deepcopy(cls.application_status)
+        data["name"] =  cls.__name__
+        data = global_status.get(cls.__name__, data)
+        if data["pid"] is not None:
+            return string.Template(dedent(cls.service_on)).substitute(data)
+        else:
+            return string.Template(dedent(cls.service_off)).substitute(data)
 class ChromeCast(LEAP):
     url = "https://www.gstatic.com/cv/receiver.html?$query"
 
@@ -193,38 +202,40 @@ class GoogleCastSampleApp(LEAP):
     url = "http://anzymrcvr.appspot.com/receiver/anzymrcvr.html"
 
 class GoogleCastPlayer(LEAP):
-    url = "http://anzymrcvr.appspot.com/receiver/anzymrcvr.html"
+    url = "https://www.gstatic.com/eureka/html/gcp.html"
 
 class Fling(LEAP):
-    url = "http://anzymrcvr.appspot.com/receiver/anzymrcvr.html"
+    url = "https://www.gstatic.com/eureka/html/gcp.html"
+
+class TicTacToe(LEAP):
+    url = "http://www.gstatic.com/eureka/sample/tictactoe/tictactoe.html"
 
 class DeviceHandler(tornado.web.RequestHandler):
 
     device = """<?xml version="1.0" encoding="utf-8"?>
     <root xmlns="urn:schemas-upnp-org:device-1-0" xmlns:r="urn:restful-tv-org:schemas:upnp-dd">
-      <specVersion>
+        <specVersion>
         <major>1</major>
         <minor>0</minor>
-      </specVersion>
-      <URLBase>$path</URLBase>
-      <device>
-        <deviceType>urn:schemas-upnp-org:device:tvdevice:1</deviceType>
-        <friendlyName>$friendlyName</friendlyName>
-        <manufacturer>Google Inc.</manufacturer>
-        <modelName>ChromeCast</modelName>
-        <UDN>uuid:3e1cc7c0-f4f3-11e2-b778-0800200c9a66</UDN>
-        
-        <serviceList>
-        <service>
-          <serviceType>urn:schemas-upnp-org:service:tvcontrol:1</serviceType>
-          <serviceId>urn:upnp-org:serviceId:tvcontrol1</serviceId>
-          <controlURL>/upnp/control/tvcontrol1</controlURL>
-          <eventSubURL>/upnp/event/tvcontrol1</eventSubURL>
-          <SCPDURL>/tvcontrolSCPD.xml</SCPDURL>
-        </service>
-        $services
-        </serviceList>
-      </device>
+        </specVersion>
+        <URLBase>$path</URLBase>
+        <device>
+            <deviceType>urn:schemas-upnp-org:device:dail:1</deviceType>
+            <friendlyName>$friendlyName</friendlyName>
+            <manufacturer>Google Inc.</manufacturer>
+            <modelName>Eureka Dongle</modelName>
+            <UDN>uuid:3e1cc7c0-f4f3-11e2-b778-0800200c9a66</UDN>
+            <serviceList>
+                <service>
+                    <serviceType>urn:schemas-upnp-org:service:dail:1</serviceType>
+                    <serviceId>urn:upnp-org:serviceId:dail</serviceId>
+                    <controlURL>/ssdp/notfound</controlURL>
+                    <eventSubURL>/ssdp/notfound</eventSubURL>
+                    <SCPDURL>/ssdp/notfound</SCPDURL>
+                </service>
+                $services
+            </serviceList>
+        </device>
     </root>"""
 
     def get(self):
@@ -232,21 +243,16 @@ class DeviceHandler(tornado.web.RequestHandler):
         self.add_header("Application-URL",path)
         self.set_header("Content-Type", "application/xml; charset=UTF-8")
         self.set_header("Cache-control", "no-cache")
-        gservice = "\n".join( [
-            ChromeCast.toInfo(),
-            YouTube.toInfo(),
-            PlayMovies.toInfo(),
-            GoogleMusic.toInfo(),
-            GoogleCastSampleApp.toInfo(),
-            GoogleCastPlayer.toInfo(),
-            Fling.toInfo(),
-        ])
-        self.write(string.Template(dedent(self.device)).substitute(dict(services=gservice, friendlyName=friendlyName, path=path )))
+        apps = []
+        for app in registered_apps:
+            apps.append(app.toInfo())
+        self.write(string.Template(dedent(self.device)).substitute(dict(services="\n".join(apps), friendlyName=friendlyName, path=path )))
 
 
 class WS(tornado.websocket.WebSocketHandler):
-    def open(self):
-        logging.info("%s opened %s" % (self.__class__.__name__, self.request.headers["User-Agent"]) )
+    def open(self, app=None):
+        self.app = app
+        logging.info("%s opened %s" % (self.__class__.__name__, self.request.uri) )
         self.cmd_id = 0
 
     def on_message(self, message):
@@ -257,7 +263,7 @@ class WS(tornado.websocket.WebSocketHandler):
         print(cmd)
 
     def on_close(self):
-        logging.info("%s closed %s" % (self.__class__.__name__, self.request.headers["User-Agent"]) )
+        logging.info("%s closed %s" % (self.__class__.__name__, self.request.uri) )
 
     def reply(self, msg):
         msg["cmd_id"] = self.cmd_id
@@ -265,22 +271,27 @@ class WS(tornado.websocket.WebSocketHandler):
         self.cmd_id += 1
 
 
-class WebSocketCast(WS):
+class CastChannel(WS):
     """
     RAMP over WebSocket.  It acts like proxy between receiver app(1st screen) and remote app(2nd screen)
     """
     def on_cmd(self, cmd):
         if cmd["type"] == "REGISTER":
             self.info = cmd
+            self.new_request()
+        if cmd["type"] == "CHANNELRESPONSE":
             self.new_chanell()
 
     def new_chanell(self):
-        self.reply({"type":"NEWCHANNEL", "requestId": "123456", "URL": "ws://localhost:8008/ramp"})
+        ws = "ws://localhost:8008/ramp/%s" % self.info["name"]
+        logging.info("New channel for app %s %s" %(self.info["name"], ws ))
+        self.reply({"type":"NEWCHANNEL" , "senderId":"1", "requestId": "123456", "URL": ws})
 
     def new_request(self):
+        logging.info("New CHANNELREQUEST for app %s" %(self.info["name"] ))
         self.reply({"type":"CHANNELREQUEST", "requestId": "123456", "senderId":"1"})
 
-class WebSocketPlatform(WS):
+class CastPlatform(WS):
     """
     Remote control over WebSocket.
 
@@ -295,7 +306,7 @@ class WebSocketPlatform(WS):
 
     """
 
-class WebSocketRAMP(WS):
+class CastRAMP(WS):
     """
     Remote proxy over WebSocket.
 
@@ -320,7 +331,9 @@ class WebSocketRAMP(WS):
 class HTTPThread(threading.Thread):
    
     def register_app(self, app):
-        name = app.__name__ 
+        global registered_apps
+        name = app.__name__
+        registered_apps.append(app)
         return (r"(/apps/" + name+ "|/apps/" + name+ "/run)", app)
 
     def run(self):
@@ -335,11 +348,12 @@ class HTTPThread(threading.Thread):
             self.register_app(GoogleMusic),
             self.register_app(GoogleCastSampleApp),
             self.register_app(GoogleCastPlayer),
+            self.register_app(TicTacToe),
             self.register_app(Fling),
 
-            (r"/connection", WebSocketCast),
-            (r"/ramp", WebSocketRAMP),
-            (r"/system/control", WebSocketPlatform),
+            (r"/connection", CastChannel),
+            (r"/ramp/([^\/]+)", CastRAMP),
+            (r"/system/control", CastPlatform),
         ])
         self.application.listen(8008)
         tornado.ioloop.IOLoop.instance().start()
