@@ -16,7 +16,6 @@ from textwrap import dedent
 import shlex, subprocess
 import json
 import copy 
-import random
 
 global_status = dict()
 registered_apps = list()
@@ -24,6 +23,7 @@ registered_apps = list()
 friendlyName = "Mopidy"
 user_agent ="Mozilla/5.0 (CrKey - 0.9.3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/30.0.1573.2 Safari/537.36"
 chrome = "/opt/google/chrome/chrome"
+fullscreen = False
 
 class SSDP(DatagramProtocol):
     SSDP_ADDR = '239.255.255.250'
@@ -165,7 +165,9 @@ class LEAP(tornado.web.RequestHandler):
 
     def launch(self, data):
         appurl = string.Template(self.url).substitute(query=data)
-        command_line ="""%s --incognito --kiosk --user-agent="%s"  --app="%s" """  % (chrome, user_agent, appurl.replace("&idle=windowclose",""))
+        if not fullscreen:
+            appurl = '--app="%s"' % appurl
+        command_line ="""%s --incognito --kiosk --user-agent="%s"  %s"""  % (chrome, user_agent, appurl)
         args = shlex.split(command_line)
         return subprocess.Popen(args)
 
@@ -383,6 +385,7 @@ if __name__ == "__main__":
     parser.add_argument('--name', help='Friendly name for this device')
     parser.add_argument('--user_agent', help='Custom user agent')
     parser.add_argument('--chrome', help='Path to Google Chrome executable')
+    parser.add_argument('--fullscreen', action='store_true', default=False, help='Start in full-screen mode')
     args = parser.parse_args()
 
     if args.name:
@@ -396,6 +399,9 @@ if __name__ == "__main__":
     if args.chrome:
         chrome = args.chrome
         logging.info("Chrome path is %s" % chrome)
+
+    if args.fullscreen:
+        fullscreen = True
 
     server = HTTPThread()
     server.start()
