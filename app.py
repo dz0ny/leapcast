@@ -237,19 +237,23 @@ class WebSocketCast(tornado.websocket.WebSocketHandler):
 
 class HTTPThread(threading.Thread):
    
+    def register_app(self, app):
+        name = app.__name__ 
+        return (r"(/apps/" + name+ "|/apps/" + name+ "/run)", app)
+
     def run(self):
 
         self.application = tornado.web.Application([
             (r"/ssdp/device-desc.xml", DeviceHandler),
-
             (r"/apps", DeviceHandler),
-            (r"(/apps/ChromeCast|/apps/ChromeCast/run)", ChromeCast),
-            (r"(/apps/YouTube|/apps/YouTube/run)", YouTube),
-            (r"(/apps/PlayMovies|/apps/PlayMovies/run)", PlayMovies),
-            (r"(/apps/GoogleMusic|/apps/GoogleMusic/run)", GoogleMusic),
-            (r"(/apps/GoogleCastSampleApp|/apps/GoogleCastSampleApp/run)", GoogleCastSampleApp),
-            (r"(/apps/GoogleCastPlayer|/apps/GoogleCastPlayer/run)", GoogleCastPlayer),
-            (r"(/apps/Fling|/apps/Fling/run)", Fling),
+
+            self.register_app(ChromeCast),
+            self.register_app(YouTube),
+            self.register_app(PlayMovies),
+            self.register_app(GoogleMusic),
+            self.register_app(GoogleCastSampleApp),
+            self.register_app(GoogleCastPlayer),
+            self.register_app(Fling),
 
             (r"/connection", WebSocketCast),
             (r"/system/control", WebSocketCast),
