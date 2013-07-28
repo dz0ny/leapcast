@@ -82,7 +82,8 @@ class LEAP(tornado.web.RequestHandler):
         self.set_header("Cache-control", "no-cache, must-revalidate, no-store")
         self.finish(self._toXML(self.get_app_status()))
 
-    def post(self):
+    @tornado.web.asynchronous
+    def post(self, sec):
         """Start app"""
         self.set_status(201)
         self.set_header("Location", self._getLocation(self.__class__.__name__))
@@ -90,7 +91,8 @@ class LEAP(tornado.web.RequestHandler):
         self.set_app_status(dict(state="running", link="""<link rel="run" href="run"/>""", pid=pid))
         self._response()
 
-    def get(self):
+    @tornado.web.asynchronous
+    def get(self, sec):
         """Status of an app"""
 
         if self.get_app_status()["pid"]:
@@ -99,7 +101,8 @@ class LEAP(tornado.web.RequestHandler):
                 self.set_app_status(dict(name=self.__class__.__name__ , state="stopped", link="", pid=None))
         self._response()
 
-    def delete(self):
+    @tornado.web.asynchronous
+    def delete(self, sec):
         """Close app"""
         self.destroy(self.get_app_status()["pid"])
         self.set_app_status(dict(name=self.__class__.__name__ , state="stopped", link="", pid=None))
@@ -110,7 +113,7 @@ class LEAP(tornado.web.RequestHandler):
 
     def launch(self, data):
         appurl = string.Template(self.url).substitute(query=data)
-        command_line ="""%s --incognito --kiosk --app="%s" --user-agent="%s"  """  % (chrome, appurl, user_agent)
+        command_line ="""%s --incognito --kiosk --user-agent="%s"  "%s" """  % (chrome, user_agent, appurl)
         print(command_line)
         args = shlex.split(command_line)
         return subprocess.Popen(args)
@@ -240,13 +243,13 @@ class HTTPThread(threading.Thread):
             (r"/ssdp/device-desc.xml", DeviceHandler),
 
             (r"/apps", DeviceHandler),
-            (r"/apps/ChromeCast", ChromeCast),
-            (r"/apps/YouTube", YouTube),
-            (r"/apps/PlayMovies", PlayMovies),
-            (r"/apps/GoogleMusic", GoogleMusic),
-            (r"/apps/GoogleCastSampleApp", GoogleCastSampleApp),
-            (r"/apps/GoogleCastPlayer", GoogleCastPlayer),
-            (r"/apps/Fling", Fling),
+            (r"(/apps/ChromeCast|/apps/ChromeCast/run)", ChromeCast),
+            (r"(/apps/YouTube|/apps/YouTube/run)", YouTube),
+            (r"(/apps/PlayMovies|/apps/PlayMovies/run)", PlayMovies),
+            (r"(/apps/GoogleMusic|/apps/GoogleMusic/run)", GoogleMusic),
+            (r"(/apps/GoogleCastSampleApp|/apps/GoogleCastSampleApp/run)", GoogleCastSampleApp),
+            (r"(/apps/GoogleCastPlayer|/apps/GoogleCastPlayer/run)", GoogleCastPlayer),
+            (r"(/apps/Fling|/apps/Fling/run)", Fling),
 
             (r"/connection", WebSocketCast),
             (r"/system/control", WebSocketCast),
