@@ -129,7 +129,7 @@ class LEAP(tornado.web.RequestHandler):
         status["connectionSvcURL"]="http://%s/ramp/%s" % (self.ip, self.get_name() )
         
         self.set_app_status(status)
-        self._response()
+        self.finish()
 
     @tornado.web.asynchronous
     def get(self, sec):
