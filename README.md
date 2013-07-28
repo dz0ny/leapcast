@@ -10,17 +10,23 @@ Working:
 
 Apps:
 
- - YouTube uses REST, CloudProxy
- - Google music uses STOMP, CloudProxy 
- - ChromeCast local websocket and stomp, video is streamed to port 8090 using webrtc
- - Fling local websocket and stomp, launches any url
+ - YouTube uses REST + CloudProxy or REST + RAMP
+ - Google music uses RAMP 
 
 On real device enabled apps are fetched from https://clients3.google.com/cast/chromecast/device/config
 
 TODO:
 
- - Play mode (via /opt/google/chrome/chrome "--app=https://www.youtube.com/tv?${POST_DATA}")
- - Remote control via STOMP and Websockets
+ - Remote control via RAMP and Websockets
+
+## What is RAMP(remote media access proxy?)
+
+- 1st screnn device(chromecast) acts like proxy betweeen two browser windows
+- 2nd screen device creates app, then waits for screenId
+- 1st screen device after app starts issues REGISTER RAMP packet
+- 1st > 2nd Issues CHANNELREQUEST with requestId which is the same as that in screenId in DIAL xml
+- 2nd screen device connects via websockets using screenId and isses LOAD, INFO, PLAY, STOP, VOLUME
+- 1st screen responds accordingly
 
 ## How to run
 
