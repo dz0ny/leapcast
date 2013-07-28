@@ -16,6 +16,7 @@ from textwrap import dedent
 import shlex, subprocess
 import json
 import copy 
+import random
 
 global_status = dict()
 registered_apps = list()
@@ -111,13 +112,13 @@ class LEAP(tornado.web.RequestHandler):
 
     def _response(self):
         self.set_header("Content-Type", "application/xml; charset=UTF-8")
-        self.set_header("Cache-control", "no-cache, must-revalidate, no-store")
-        
+        self.set_header("Cache-control", "no-cache, must-revalidate, no-store")       
         self.finish(self._toXML(self.get_app_status()))
 
     @tornado.web.asynchronous
     def post(self, sec):
         """Start app"""
+        self.clear()
         self.set_status(201)
         self.set_header("Location", self._getLocation(self.get_name()))
 
@@ -133,7 +134,7 @@ class LEAP(tornado.web.RequestHandler):
     @tornado.web.asynchronous
     def get(self, sec):
         """Status of an app"""
-
+        self.clear()
         if self.get_app_status()["pid"]:
             # app crashed or closed
             if self.get_app_status()["pid"].poll() is not None:
@@ -149,6 +150,7 @@ class LEAP(tornado.web.RequestHandler):
     @tornado.web.asynchronous
     def delete(self, sec):
         """Close app"""
+        self.clear()
         self.destroy(self.get_app_status()["pid"])
         status = self.get_status_dict()
         status["state"]="stopped"
@@ -239,14 +241,19 @@ class DeviceHandler(tornado.web.RequestHandler):
     </root>"""
 
     def get(self):
-        path = "http://%s/apps" % self.request.host
-        self.add_header("Application-URL",path)
-        self.set_header("Content-Type", "application/xml; charset=UTF-8")
-        self.set_header("Cache-control", "no-cache")
-        apps = []
-        for app in registered_apps:
-            apps.append(app.toInfo())
-        self.write(string.Template(dedent(self.device)).substitute(dict(services="\n".join(apps), friendlyName=friendlyName, path=path )))
+        if self.request.uri == "/apps":
+            for app in global_status:
+                self.redirect("/apps/%s" % app)
+                return
+        else:
+            path = "http://%s/apps" % self.request.host
+            self.add_header("Application-URL",path)
+            self.set_header("Content-Type", "application/xml; charset=UTF-8")
+            self.set_header("Cache-control", "no-cache")
+            apps = []
+            for app in registered_apps:
+                apps.append(app.toInfo())
+            self.write(string.Template(dedent(self.device)).substitute(dict(services="\n".join(apps), friendlyName=friendlyName, path=path )))
 
 
 class WS(tornado.websocket.WebSocketHandler):
