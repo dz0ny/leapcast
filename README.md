@@ -21,7 +21,7 @@ TODO:
 
 ## What is RAMP(remote media access proxy?)
 
-- 1st screnn device(chromecast) acts like proxy betweeen two browser windows
+- 1st screnn device(chromecast) acts like proxy betweeen two browser/app sessions 
 - 2nd screen device creates app, then waits for screenId
 - 1st screen device after app starts issues REGISTER RAMP packet
 - 1st > 2nd Issues CHANNELREQUEST with requestId which is the same as that in screenId in DIAL xml
