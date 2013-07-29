@@ -73,18 +73,16 @@ class LEAP(tornado.web.RequestHandler):
         pid=None,
         connectionSvcURL="",
         protocols="",
-        applicationContext="",
     )
-    service = """<service xmlns="urn:dial-multiscreen-org:schemas:dial">
+    service = """<?xml version="1.0" encoding="UTF-8"?>
+    <service xmlns="urn:dial-multiscreen-org:schemas:dial">
         <name>$name</name>
         <options allowStop="true"/>
         <activity-status xmlns="urn:chrome.google.com:cast">
             <description>Legacy</description>
-            <image src="https://ssl.gstatic.com/music/fe/d52a0d1566a74f91dffa745a811ff578/favicon.ico"/>
         </activity-status>
         <servicedata xmlns="urn:chrome.google.com:cast">
             <connectionSvcURL>$connectionSvcURL</connectionSvcURL>
-            <applicationContext>$applicationContext</applicationContext>
             <protocols>$protocols</protocols>
         </servicedata>
         <state>$state</state>
@@ -132,7 +130,7 @@ class LEAP(tornado.web.RequestHandler):
 
         status = self.get_status_dict()
         status["state"] = "running"
-        status["link"] = """<link rel="run" href="run"/>"""
+        status["link"] = """<link rel="run" href="web-1"/>"""
         status["pid"] = self.launch(self.request.body)
         status["connectionSvcURL"] = "http://%s/connection/%s" % (
             self.ip, self.get_name())
@@ -171,7 +169,7 @@ class LEAP(tornado.web.RequestHandler):
         self._response()
 
     def _getLocation(self, app):
-        return "http://%s/apps/%s/run" % (self.ip, app)
+        return "http://%s/apps/%s/web-1" % (self.ip, app)
 
     def launch(self, data):
         appurl = string.Template(self.url).substitute(query=data)
@@ -209,7 +207,7 @@ class YouTube(LEAP):
 
 class PlayMovies(LEAP):
     url = "https://play.google.com/video/avi/eureka?$query"
-    protocols = "<protocol>ramp</protocol>"
+    protocols = "<protocol>ramp</protocol><protocol>play-movies</protocol>"
 
 
 class GoogleMusic(LEAP):
