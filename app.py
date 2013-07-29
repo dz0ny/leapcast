@@ -7,6 +7,7 @@ from twisted.internet.protocol import DatagramProtocol
 import tornado.ioloop
 import tornado.web
 import tornado.websocket
+import socket
 import threading
 import string
 import argparse
@@ -51,7 +52,14 @@ ST: urn:dial-multiscreen-org:service:dial:1\r
 
     def datagramReceived(self, datagram, address):
         if "urn:dial-multiscreen-org:service:dial:1" in datagram and "M-SEARCH" in datagram:
-            data =string.Template(dedent(self.MS)).substitute(ip=self.iface)
+            iface = self.iface
+            if not iface:
+                # Create a socket to determine what address the client should use
+                s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                s.connect(address)
+                iface = s.getsockname()[0]
+                s.close()
+            data =string.Template(dedent(self.MS)).substitute(ip=iface)
             self.transport.write(data, address)
 
 class LEAP(tornado.web.RequestHandler):
@@ -337,8 +345,11 @@ class CastRAMP(WS):
     def on_ramp_command(self, cmd):
         print cmd
 
-class HTTPThread(threading.Thread):
+class HTTPThread(object):
    
+    def __init__(self, iface):
+        self.iface = iface
+
     def register_app(self, app):
         global registered_apps
         name = app.__name__
@@ -364,8 +375,11 @@ class HTTPThread(threading.Thread):
             (r"/ramp/([^\/]+)", CastRAMP),
             (r"/system/control", CastPlatform),
         ])
-        self.application.listen(8008)
+        self.application.listen(8008, address=self.iface)
         tornado.ioloop.IOLoop.instance().start()
+
+    def start(self):
+        threading.Thread(target=self.run).start()
     
     def shutdown(self, ):
         logging.info('Stopping HTTP server')
@@ -381,7 +395,7 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('iface', help='Interface you want to bind to (for example 192.168.1.22)')
+    parser.add_argument('--iface', help='Interface you want to bind to (for example 192.168.1.22)', default='')
     parser.add_argument('--name', help='Friendly name for this device')
     parser.add_argument('--user_agent', help='Custom user agent')
     parser.add_argument('--chrome', help='Path to Google Chrome executable')
@@ -403,14 +417,14 @@ if __name__ == "__main__":
     if args.fullscreen:
         fullscreen = True
 
-    server = HTTPThread()
+    server = HTTPThread(args.iface)
     server.start()
 
     signal.signal(signal.SIGTERM, server.sig_handler)
     signal.signal(signal.SIGINT, server.sig_handler)
 
     def LeapUPNPServer():
-        logging.info("Listening on %s" % args.iface)
+        logging.info("Listening on %s" % (args.iface or 'all'))
         sobj = SSDP(args.iface)
         reactor.addSystemEventTrigger('before', 'shutdown', sobj.stop)
 
