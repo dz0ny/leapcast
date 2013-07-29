@@ -61,7 +61,8 @@ ST: urn:dial-multiscreen-org:service:dial:1\r
                 s.connect(address)
                 iface = s.getsockname()[0]
                 s.close()
-            data = string.Template(dedent(self.MS)).substitute(ip=iface, uuid=uuid.uuid5(uuid.NAMESPACE_DNS, friendlyName))
+            data = string.Template(dedent(self.MS)).substitute(
+                ip=iface, uuid=uuid.uuid5(uuid.NAMESPACE_DNS, friendlyName))
             self.transport.write(data, address)
 
 
@@ -264,11 +265,15 @@ class DeviceHandler(tornado.web.RequestHandler):
 
     def get(self):
         if self.request.uri == "/apps":
-            for app in global_status:
-                self.redirect("/apps/%s" % app)
-                return
+            for app, astatus in global_status.items():
+                if astatus["state"] == "running":
+                    self.redirect("/apps/%s" % app)
+            self.set_status(204)
+            self.set_header(
+                "Access-Control-Allow-Method", "GET, POST, DELETE, OPTIONS")
+            self.set_header("Access-Control-Expose-Headers", "Location")
+            self.finish()
         else:
-            self.clear()
             self.set_header(
                 "Access-Control-Allow-Method", "GET, POST, DELETE, OPTIONS")
             self.set_header("Access-Control-Expose-Headers", "Location")
