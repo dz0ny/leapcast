@@ -14,17 +14,19 @@ import argparse
 import signal
 import logging
 from textwrap import dedent
-import shlex, subprocess
+import shlex
+import subprocess
 import json
-import copy 
+import copy
 
 global_status = dict()
 registered_apps = list()
 
 friendlyName = "Mopidy"
-user_agent ="Mozilla/5.0 (CrKey - 0.9.3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/30.0.1573.2 Safari/537.36"
+user_agent = "Mozilla/5.0 (CrKey - 0.9.3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/30.0.1573.2 Safari/537.36"
 chrome = "/opt/google/chrome/chrome"
 fullscreen = False
+
 
 class SSDP(DatagramProtocol):
     SSDP_ADDR = '239.255.255.250'
@@ -54,22 +56,24 @@ ST: urn:dial-multiscreen-org:service:dial:1\r
         if "urn:dial-multiscreen-org:service:dial:1" in datagram and "M-SEARCH" in datagram:
             iface = self.iface
             if not iface:
-                # Create a socket to determine what address the client should use
+                # Create a socket to determine what address the client should
+                # use
                 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                 s.connect(address)
                 iface = s.getsockname()[0]
                 s.close()
-            data =string.Template(dedent(self.MS)).substitute(ip=iface)
+            data = string.Template(dedent(self.MS)).substitute(ip=iface)
             self.transport.write(data, address)
+
 
 class LEAP(tornado.web.RequestHandler):
     application_status = dict(
-            name="",
-            state="stopped",
-            link="",
-            pid=None,
-            connectionSvcURL="",
-            applicationContext="",
+        name="",
+        state="stopped",
+        link="",
+        pid=None,
+        connectionSvcURL="",
+        applicationContext="",
     )
     service_on = """<service xmlns="urn:dial-multiscreen-org:schemas:dial">
         <name>$name</name>
@@ -100,10 +104,10 @@ class LEAP(tornado.web.RequestHandler):
     url = "$query"
 
     def get_name(self):
-        return self.__class__.__name__ 
+        return self.__class__.__name__
 
     def get_status_dict(self):
-        status =copy.deepcopy(self.application_status)
+        status = copy.deepcopy(self.application_status)
         status["name"] = self.get_name()
         return status
 
@@ -115,12 +119,12 @@ class LEAP(tornado.web.RequestHandler):
 
     def set_app_status(self, app_status):
         global global_status
-        app_status["name"] = self.get_name() 
-        global_status[self.get_name() ] = app_status
+        app_status["name"] = self.get_name()
+        global_status[self.get_name()] = app_status
 
     def _response(self):
         self.set_header("Content-Type", "application/xml; charset=UTF-8")
-        self.set_header("Cache-control", "no-cache, must-revalidate, no-store")       
+        self.set_header("Cache-control", "no-cache, must-revalidate, no-store")
         self.finish(self._toXML(self.get_app_status()))
 
     @tornado.web.asynchronous
@@ -131,11 +135,12 @@ class LEAP(tornado.web.RequestHandler):
         self.set_header("Location", self._getLocation(self.get_name()))
 
         status = self.get_status_dict()
-        status["state"]="running"
-        status["link"]="""<link rel="run" href="run"/>"""
-        status["pid"]=self.launch(self.request.body)
-        status["connectionSvcURL"]="http://%s/ramp/%s" % (self.ip, self.get_name() )
-        
+        status["state"] = "running"
+        status["link"] = """<link rel="run" href="run"/>"""
+        status["pid"] = self.launch(self.request.body)
+        status["connectionSvcURL"] = "http://%s/ramp/%s" % (
+            self.ip, self.get_name())
+
         self.set_app_status(status)
         self.finish()
 
@@ -148,10 +153,10 @@ class LEAP(tornado.web.RequestHandler):
             if self.get_app_status()["pid"].poll() is not None:
 
                 status = self.get_status_dict()
-                status["state"]="stopped"
-                status["link"]=""
-                status["pid"]=None
-                
+                status["state"] = "stopped"
+                status["link"] = ""
+                status["pid"] = None
+
                 self.set_app_status(status)
         self._response()
 
@@ -161,21 +166,22 @@ class LEAP(tornado.web.RequestHandler):
         self.clear()
         self.destroy(self.get_app_status()["pid"])
         status = self.get_status_dict()
-        status["state"]="stopped"
-        status["link"]=""
-        status["pid"]=None
-        
+        status["state"] = "stopped"
+        status["link"] = ""
+        status["pid"] = None
+
         self.set_app_status(status)
         self._response()
 
     def _getLocation(self, app):
-        return "http://%s/apps/%s/run" % (self.ip, app )
+        return "http://%s/apps/%s/run" % (self.ip, app)
 
     def launch(self, data):
         appurl = string.Template(self.url).substitute(query=data)
         if not fullscreen:
             appurl = '--app="%s"' % appurl
-        command_line ="""%s --incognito --kiosk --user-agent="%s"  %s"""  % (chrome, user_agent, appurl)
+        command_line = """%s --incognito --kiosk --user-agent="%s"  %s"""  % (
+            chrome, user_agent, appurl)
         args = shlex.split(command_line)
         return subprocess.Popen(args)
 
@@ -192,35 +198,45 @@ class LEAP(tornado.web.RequestHandler):
     @classmethod
     def toInfo(cls):
         data = copy.deepcopy(cls.application_status)
-        data["name"] =  cls.__name__
+        data["name"] = cls.__name__
         data = global_status.get(cls.__name__, data)
         if data["pid"] is not None:
             return string.Template(dedent(cls.service_on)).substitute(data)
         else:
             return string.Template(dedent(cls.service_off)).substitute(data)
+
+
 class ChromeCast(LEAP):
     url = "https://www.gstatic.com/cv/receiver.html?$query"
+
 
 class YouTube(LEAP):
     url = "https://www.youtube.com/tv?$query"
 
+
 class PlayMovies(LEAP):
     url = "https://play.google.com/video/avi/eureka?$query"
+
 
 class GoogleMusic(LEAP):
     url = "https://play.google.com/music/cast/player"
 
+
 class GoogleCastSampleApp(LEAP):
     url = "http://anzymrcvr.appspot.com/receiver/anzymrcvr.html"
+
 
 class GoogleCastPlayer(LEAP):
     url = "https://www.gstatic.com/eureka/html/gcp.html"
 
+
 class Fling(LEAP):
     url = "https://www.gstatic.com/eureka/html/gcp.html"
 
+
 class TicTacToe(LEAP):
     url = "http://www.gstatic.com/eureka/sample/tictactoe/tictactoe.html"
+
 
 class DeviceHandler(tornado.web.RequestHandler):
 
@@ -257,19 +273,22 @@ class DeviceHandler(tornado.web.RequestHandler):
                 return
         else:
             path = "http://%s/apps" % self.request.host
-            self.add_header("Application-URL",path)
+            self.add_header("Application-URL", path)
             self.set_header("Content-Type", "application/xml; charset=UTF-8")
             self.set_header("Cache-control", "no-cache")
             apps = []
             for app in registered_apps:
                 apps.append(app.toInfo())
-            self.write(string.Template(dedent(self.device)).substitute(dict(services="\n".join(apps), friendlyName=friendlyName, path=path )))
+            self.write(string.Template(dedent(self.device)).substitute(
+                dict(services="\n".join(apps), friendlyName=friendlyName, path=path)))
 
 
 class WS(tornado.websocket.WebSocketHandler):
+
     def open(self, app=None):
         self.app = app
-        logging.info("%s opened %s" % (self.__class__.__name__, self.request.uri) )
+        logging.info("%s opened %s" %
+                     (self.__class__.__name__, self.request.uri))
         self.cmd_id = 0
 
     def on_message(self, message):
@@ -280,7 +299,8 @@ class WS(tornado.websocket.WebSocketHandler):
         print(cmd)
 
     def on_close(self):
-        logging.info("%s closed %s" % (self.__class__.__name__, self.request.uri) )
+        logging.info("%s closed %s" %
+                     (self.__class__.__name__, self.request.uri))
 
     def reply(self, msg):
         msg["cmd_id"] = self.cmd_id
@@ -289,9 +309,11 @@ class WS(tornado.websocket.WebSocketHandler):
 
 
 class CastChannel(WS):
+
     """
     RAMP over WebSocket.  It acts like proxy between receiver app(1st screen) and remote app(2nd screen)
     """
+
     def on_cmd(self, cmd):
         if cmd["type"] == "REGISTER":
             self.info = cmd
@@ -301,14 +323,18 @@ class CastChannel(WS):
 
     def new_chanell(self):
         ws = "ws://localhost:8008/ramp/%s" % self.info["name"]
-        logging.info("New channel for app %s %s" %(self.info["name"], ws ))
-        self.reply({"type":"NEWCHANNEL" , "senderId":"1", "requestId": "123456", "URL": ws})
+        logging.info("New channel for app %s %s" % (self.info["name"], ws))
+        self.reply(
+            {"type": "NEWCHANNEL", "senderId": "1", "requestId": "123456", "URL": ws})
 
     def new_request(self):
-        logging.info("New CHANNELREQUEST for app %s" %(self.info["name"] ))
-        self.reply({"type":"CHANNELREQUEST", "requestId": "123456", "senderId":"1"})
+        logging.info("New CHANNELREQUEST for app %s" % (self.info["name"]))
+        self.reply(
+            {"type": "CHANNELREQUEST", "requestId": "123456", "senderId": "1"})
+
 
 class CastPlatform(WS):
+
     """
     Remote control over WebSocket.
 
@@ -323,11 +349,14 @@ class CastPlatform(WS):
 
     """
 
+
 class CastRAMP(WS):
+
     """
     Remote proxy over WebSocket.
 
     """
+
     def reply(self, msg):
         self.write_message((json.dumps(msg)))
 
@@ -337,7 +366,6 @@ class CastRAMP(WS):
         if cmd[0] == "ramp":
             self.on_ramp_command(cmd[1])
 
-
     def on_cm_command(self, cmd):
         print cmd
         self.reply(['cm', {'type': 'pong'}])
@@ -345,8 +373,9 @@ class CastRAMP(WS):
     def on_ramp_command(self, cmd):
         print cmd
 
+
 class HTTPThread(object):
-   
+
     def __init__(self, iface):
         self.iface = iface
 
@@ -354,7 +383,7 @@ class HTTPThread(object):
         global registered_apps
         name = app.__name__
         registered_apps.append(app)
-        return (r"(/apps/" + name+ "|/apps/" + name+ "/run)", app)
+        return (r"(/apps/" + name + "|/apps/" + name + "/run)", app)
 
     def run(self):
 
@@ -380,7 +409,7 @@ class HTTPThread(object):
 
     def start(self):
         threading.Thread(target=self.run).start()
-    
+
     def shutdown(self, ):
         logging.info('Stopping HTTP server')
         reactor.callFromThread(reactor.stop)
@@ -389,17 +418,19 @@ class HTTPThread(object):
 
     def sig_handler(self, sig, frame):
         tornado.ioloop.IOLoop.instance().add_callback(self.shutdown)
-        
+
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--iface', help='Interface you want to bind to (for example 192.168.1.22)', default='')
+    parser.add_argument(
+        '--iface', help='Interface you want to bind to (for example 192.168.1.22)', default='')
     parser.add_argument('--name', help='Friendly name for this device')
     parser.add_argument('--user_agent', help='Custom user agent')
     parser.add_argument('--chrome', help='Path to Google Chrome executable')
-    parser.add_argument('--fullscreen', action='store_true', default=False, help='Start in full-screen mode')
+    parser.add_argument('--fullscreen', action='store_true',
+                        default=False, help='Start in full-screen mode')
     args = parser.parse_args()
 
     if args.name:
