@@ -18,10 +18,9 @@ import shlex
 import subprocess
 import json
 import copy
+import uuid
 
 global_status = dict()
-registered_apps = list()
-
 friendlyName = "Mopidy"
 user_agent = "Mozilla/5.0 (CrKey - 0.9.3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/30.0.1573.2 Safari/537.36"
 chrome = "/opt/google/chrome/chrome"
@@ -36,7 +35,7 @@ LOCATION: http://$ip:8008/ssdp/device-desc.xml\r
 CACHE-CONTROL: max-age=1800\r
 CONFIGID.UPNP.ORG: 7337\r
 BOOTID.UPNP.ORG: 7337\r
-USN: uuid:3e1cc7c0-f4f3-11e2-b778-0800200c9a66::urn:dial-multiscreen-org:service:dial:1\r
+USN: uuid:$uuid\r
 ST: urn:dial-multiscreen-org:service:dial:1\r
 \r
 """
@@ -62,7 +61,7 @@ ST: urn:dial-multiscreen-org:service:dial:1\r
                 s.connect(address)
                 iface = s.getsockname()[0]
                 s.close()
-            data = string.Template(dedent(self.MS)).substitute(ip=iface)
+            data = string.Template(dedent(self.MS)).substitute(ip=iface, uuid=uuid.uuid5(uuid.NAMESPACE_DNS, friendlyName))
             self.transport.write(data, address)
 
 
@@ -73,9 +72,10 @@ class LEAP(tornado.web.RequestHandler):
         link="",
         pid=None,
         connectionSvcURL="",
+        protocols="",
         applicationContext="",
     )
-    service_on = """<service xmlns="urn:dial-multiscreen-org:schemas:dial">
+    service = """<service xmlns="urn:dial-multiscreen-org:schemas:dial">
         <name>$name</name>
         <options allowStop="true"/>
         <activity-status xmlns="urn:chrome.google.com:cast">
@@ -85,23 +85,16 @@ class LEAP(tornado.web.RequestHandler):
         <servicedata xmlns="urn:chrome.google.com:cast">
             <connectionSvcURL>$connectionSvcURL</connectionSvcURL>
             <applicationContext>$applicationContext</applicationContext>
-            <protocols>
-                <protocol>ramp</protocol>
-            </protocols>
+            <protocols>$protocols</protocols>
         </servicedata>
         <state>$state</state>
         $link
     </service>
     """
-    service_off = """<service xmlns="urn:dial-multiscreen-org:schemas:dial">
-        <name>$name</name>
-        <options allowStop="true"/>
-        <state>$state</state>
-        $link
-    </service>
-    """
+
     ip = None
     url = "$query"
+    protocols = ""
 
     def get_name(self):
         return self.__class__.__name__
@@ -123,7 +116,10 @@ class LEAP(tornado.web.RequestHandler):
         global_status[self.get_name()] = app_status
 
     def _response(self):
-        self.set_header("Content-Type", "application/xml; charset=UTF-8")
+        self.set_header("Content-Type", "application/xml")
+        self.set_header(
+            "Access-Control-Allow-Method", "GET, POST, DELETE, OPTIONS")
+        self.set_header("Access-Control-Expose-Headers", "Location")
         self.set_header("Cache-control", "no-cache, must-revalidate, no-store")
         self.finish(self._toXML(self.get_app_status()))
 
@@ -138,8 +134,9 @@ class LEAP(tornado.web.RequestHandler):
         status["state"] = "running"
         status["link"] = """<link rel="run" href="run"/>"""
         status["pid"] = self.launch(self.request.body)
-        status["connectionSvcURL"] = "http://%s/ramp/%s" % (
+        status["connectionSvcURL"] = "http://%s/connection/%s" % (
             self.ip, self.get_name())
+        status["protocols"] = self.protocols
 
         self.set_app_status(status)
         self.finish()
@@ -190,52 +187,54 @@ class LEAP(tornado.web.RequestHandler):
             pid.terminate()
 
     def _toXML(self, data):
-        if data["pid"] is not None:
-            return string.Template(dedent(self.service_on)).substitute(data)
-        else:
-            return string.Template(dedent(self.service_off)).substitute(data)
+        return string.Template(dedent(self.service)).substitute(data)
 
     @classmethod
     def toInfo(cls):
         data = copy.deepcopy(cls.application_status)
         data["name"] = cls.__name__
         data = global_status.get(cls.__name__, data)
-        if data["pid"] is not None:
-            return string.Template(dedent(cls.service_on)).substitute(data)
-        else:
-            return string.Template(dedent(cls.service_off)).substitute(data)
+        return string.Template(dedent(cls.service)).substitute(data)
 
 
 class ChromeCast(LEAP):
     url = "https://www.gstatic.com/cv/receiver.html?$query"
+    protocols = "<protocol>ramp</protocol>"
 
 
 class YouTube(LEAP):
     url = "https://www.youtube.com/tv?$query"
+    protocols = "<protocol>ramp</protocol>"
 
 
 class PlayMovies(LEAP):
     url = "https://play.google.com/video/avi/eureka?$query"
+    protocols = "<protocol>ramp</protocol>"
 
 
 class GoogleMusic(LEAP):
     url = "https://play.google.com/music/cast/player"
+    protocols = "<protocol>ramp</protocol>"
 
 
 class GoogleCastSampleApp(LEAP):
     url = "http://anzymrcvr.appspot.com/receiver/anzymrcvr.html"
+    protocols = "<protocol>ramp</protocol>"
 
 
 class GoogleCastPlayer(LEAP):
     url = "https://www.gstatic.com/eureka/html/gcp.html"
+    protocols = "<protocol>ramp</protocol>"
 
 
 class Fling(LEAP):
     url = "https://www.gstatic.com/eureka/html/gcp.html"
+    protocols = "<protocol>ramp</protocol>"
 
 
 class TicTacToe(LEAP):
     url = "http://www.gstatic.com/eureka/sample/tictactoe/tictactoe.html"
+    protocols = "<protocol>com.google.chromecast.demo.tictactoe</protocol>"
 
 
 class DeviceHandler(tornado.web.RequestHandler):
@@ -252,7 +251,7 @@ class DeviceHandler(tornado.web.RequestHandler):
             <friendlyName>$friendlyName</friendlyName>
             <manufacturer>Google Inc.</manufacturer>
             <modelName>Eureka Dongle</modelName>
-            <UDN>uuid:3e1cc7c0-f4f3-11e2-b778-0800200c9a66</UDN>
+            <UDN>uuid:$uuid</UDN>
             <serviceList>
                 <service>
                     <serviceType>urn:schemas-upnp-org:service:dail:1</serviceType>
@@ -261,7 +260,6 @@ class DeviceHandler(tornado.web.RequestHandler):
                     <eventSubURL>/ssdp/notfound</eventSubURL>
                     <SCPDURL>/ssdp/notfound</SCPDURL>
                 </service>
-                $services
             </serviceList>
         </device>
     </root>"""
@@ -272,15 +270,20 @@ class DeviceHandler(tornado.web.RequestHandler):
                 self.redirect("/apps/%s" % app)
                 return
         else:
-            path = "http://%s/apps" % self.request.host
-            self.add_header("Application-URL", path)
-            self.set_header("Content-Type", "application/xml; charset=UTF-8")
-            self.set_header("Cache-control", "no-cache")
-            apps = []
-            for app in registered_apps:
-                apps.append(app.toInfo())
+            self.clear()
+            self.set_header(
+                "Access-Control-Allow-Method", "GET, POST, DELETE, OPTIONS")
+            self.set_header("Access-Control-Expose-Headers", "Location")
+            self.add_header(
+                "Application-URL", "http://%s/apps" % self.request.host)
+            self.set_header("Content-Type", "application/xml")
             self.write(string.Template(dedent(self.device)).substitute(
-                dict(services="\n".join(apps), friendlyName=friendlyName, path=path)))
+                dict(
+                    uuid=uuid.uuid5(uuid.NAMESPACE_DNS, friendlyName),
+                    friendlyName=friendlyName,
+                    path="http://%s" % self.request.host)
+            )
+            )
 
 
 class WS(tornado.websocket.WebSocketHandler):
@@ -322,7 +325,7 @@ class CastChannel(WS):
             self.new_chanell()
 
     def new_chanell(self):
-        ws = "ws://localhost:8008/ramp/%s" % self.info["name"]
+        ws = "ws://localhost:8008/connection/%s" % self.info["name"]
         logging.info("New channel for app %s %s" % (self.info["name"], ws))
         self.reply(
             {"type": "NEWCHANNEL", "senderId": "1", "requestId": "123456", "URL": ws})
@@ -380,9 +383,7 @@ class HTTPThread(object):
         self.iface = iface
 
     def register_app(self, app):
-        global registered_apps
         name = app.__name__
-        registered_apps.append(app)
         return (r"(/apps/" + name + "|/apps/" + name + "/run)", app)
 
     def run(self):
@@ -401,7 +402,7 @@ class HTTPThread(object):
             self.register_app(Fling),
 
             (r"/connection", CastChannel),
-            (r"/ramp/([^\/]+)", CastRAMP),
+            (r"/connection/([^\/]+)", CastRAMP),
             (r"/system/control", CastPlatform),
         ])
         self.application.listen(8008, address=self.iface)
