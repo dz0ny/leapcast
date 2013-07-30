@@ -19,14 +19,21 @@ TODO:
 
  - Remote control via RAMP and Websockets
 
-## What is RAMP(remote media access proxy?)
+## Websocket Channel creation
 
-- 1st screnn device(chromecast) acts like proxy betweeen two browser/app sessions 
-- 2nd screen device creates app, then waits for screenId
-- 1st screen device after app starts issues REGISTER RAMP packet
-- 1st > 2nd Issues CHANNELREQUEST with requestId which is the same as that in screenId in DIAL xml
-- 2nd screen device connects via websockets using screenId and isses LOAD, INFO, PLAY, STOP, VOLUME
-- 1st screen responds accordingly
+1st screen device:
+    - GET /connection (ws)
+
+
+2nd screen device: 
+
+    - GET /ssdp/device-desc.xml HTTP/1.1
+    - HTTP/1.1 200 OK
+    - POST /apps/APP HTTP/1.1
+    - HTTP/1.1 201 Created and $connectionSvcURL
+    - POST $connectionSvcURL < create channel
+    - HTTP/1.1 200 OK < Session URL
+    - GET /session/app (ws)
 
 ## How to run
 
@@ -48,6 +55,6 @@ optional arguments:
 
 ```
 
-Install Google Chrome, then run
+Install Google Chrome, twisted and tornado then run
 
 ```python2 app.py ip_of_this_device --name "My super name"```

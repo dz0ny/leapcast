@@ -289,6 +289,17 @@ class DeviceHandler(tornado.web.RequestHandler):
             )
 
 
+class ChannelFactory(tornado.web.RequestHandler):
+
+    def post(self, app=None):
+        self.set_header(
+            "Access-Control-Allow-Method", "POST, OPTIONS")
+        self.set_header("Access-Control-Allow-Headers", "Content-Type")
+        self.set_header("Content-Type", "application/json")
+        self.finish(
+            '{"URL":"ws://192.168.3.22:8008/session?28","pingInterval":5}')
+
+
 class WS(tornado.websocket.WebSocketHandler):
 
     def open(self, app=None):
@@ -314,14 +325,14 @@ class WS(tornado.websocket.WebSocketHandler):
         self.cmd_id += 1
 
 
-class CastChannel(WS):
-
+class ReceiverChannel(WS):
     """
-    RAMP over WebSocket.  It acts like proxy between receiver app(1st screen) and remote app(2nd screen)
+    ws /connection
+    From 1st screen app
     """
-
     def on_cmd(self, cmd):
         if cmd["type"] == "REGISTER":
+            logging.info("New ReceiverChannel for app %s" %cmd)
             self.info = cmd
             self.new_request()
         if cmd["type"] == "CHANNELRESPONSE":
@@ -329,15 +340,20 @@ class CastChannel(WS):
 
     def new_chanell(self):
         ws = "ws://localhost:8008/connection/%s" % self.info["name"]
-        logging.info("New channel for app %s %s" % (self.info["name"], ws))
         self.reply(
             {"type": "NEWCHANNEL", "senderId": "1", "requestId": "123456", "URL": ws})
 
     def new_request(self):
         logging.info("New CHANNELREQUEST for app %s" % (self.info["name"]))
         self.reply(
-            {"type": "CHANNELREQUEST", "requestId": "123456", "senderId": "1"})
+            {"type": "CHANNELREQUEST", "requestId": "0", "senderId": "0"})
 
+
+class ApplicationChannel(WS):
+    """
+    ws /session
+    From 2nd screen app
+    """
 
 class CastPlatform(WS):
 
@@ -354,30 +370,6 @@ class CastPlatform(WS):
     Device control:
 
     """
-
-
-class CastRAMP(WS):
-
-    """
-    Remote proxy over WebSocket.
-
-    """
-
-    def reply(self, msg):
-        self.write_message((json.dumps(msg)))
-
-    def on_cmd(self, cmd):
-        if cmd[0] == "cm":
-            self.on_cm_command(cmd[1])
-        if cmd[0] == "ramp":
-            self.on_ramp_command(cmd[1])
-
-    def on_cm_command(self, cmd):
-        print cmd
-        self.reply(['cm', {'type': 'pong'}])
-
-    def on_ramp_command(self, cmd):
-        print cmd
 
 
 class HTTPThread(object):
@@ -404,8 +396,9 @@ class HTTPThread(object):
             self.register_app(TicTacToe),
             self.register_app(Fling),
 
-            (r"/connection", CastChannel),
-            (r"/connection/([^\/]+)", CastRAMP),
+            (r"/connection", ReceiverChannel),
+            (r"/session", ApplicationChannel),
+            (r"/connection/([^\/]+)", ChannelFactory),
             (r"/system/control", CastPlatform),
         ])
         self.application.listen(8008, address=self.iface)
