@@ -1,5 +1,5 @@
 # leapcast
-
+![Google Music](http://screencloud.net//img/screenshots/3c17671ad386247d7dbd2f7395c4df77.png "Google Music")
 
 Simple ChromeCast emulation app.
 
