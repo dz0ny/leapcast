@@ -22,8 +22,9 @@ TODO:
 ## Websocket Channel creation
 
 1st screen device:
-    - GET /connection (ws)
 
+    - GET /connection (ws)
+    ws register,create_channel
 
 2nd screen device: 
 

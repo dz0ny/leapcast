@@ -19,12 +19,16 @@ import subprocess
 import json
 import copy
 import uuid
+from collections import deque
 
-global_status = dict()
-friendlyName = "Mopidy"
-user_agent = "Mozilla/5.0 (CrKey - 0.9.3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/30.0.1573.2 Safari/537.36"
-chrome = "/opt/google/chrome/chrome"
-fullscreen = False
+
+class Enviroment(object):
+    channels = dict()
+    global_status = dict()
+    friendlyName = "Mopidy"
+    user_agent = "Mozilla/5.0 (CrKey - 0.9.3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/30.0.1573.2 Safari/537.36"
+    chrome = "/opt/google/chrome/chrome"
+    fullscreen = False
 
 
 class SSDP(DatagramProtocol):
@@ -62,7 +66,7 @@ ST: urn:dial-multiscreen-org:service:dial:1\r
                 iface = s.getsockname()[0]
                 s.close()
             data = string.Template(dedent(self.MS)).substitute(
-                ip=iface, uuid=uuid.uuid5(uuid.NAMESPACE_DNS, friendlyName))
+                ip=iface, uuid=uuid.uuid5(uuid.NAMESPACE_DNS, Enviroment.friendlyName))
             self.transport.write(data, address)
 
 
@@ -74,6 +78,7 @@ class LEAP(tornado.web.RequestHandler):
         pid=None,
         connectionSvcURL="",
         protocols="",
+        app=None
     )
     service = """<?xml version="1.0" encoding="UTF-8"?>
     <service xmlns="urn:dial-multiscreen-org:schemas:dial">
@@ -107,12 +112,12 @@ class LEAP(tornado.web.RequestHandler):
         self.ip = self.request.host
 
     def get_app_status(self):
-        return global_status.get(self.get_name(), self.get_status_dict())
+        return Enviroment.global_status.get(self.get_name(), self.get_status_dict())
 
     def set_app_status(self, app_status):
-        global global_status
+
         app_status["name"] = self.get_name()
-        global_status[self.get_name()] = app_status
+        Enviroment.global_status[self.get_name()] = app_status
 
     def _response(self):
         self.set_header("Content-Type", "application/xml")
@@ -128,14 +133,16 @@ class LEAP(tornado.web.RequestHandler):
         self.clear()
         self.set_status(201)
         self.set_header("Location", self._getLocation(self.get_name()))
-
-        status = self.get_status_dict()
-        status["state"] = "running"
-        status["link"] = """<link rel="run" href="web-1"/>"""
-        status["pid"] = self.launch(self.request.body)
-        status["connectionSvcURL"] = "http://%s/connection/%s" % (
-            self.ip, self.get_name())
-        status["protocols"] = self.protocols
+        print self.request.body
+        status = self.get_app_status()
+        if status["pid"] is None:
+            status["state"] = "running"
+            status["link"] = """<link rel="run" href="web-1"/>"""
+            status["pid"] = self.launch(self.request.body)
+            status["connectionSvcURL"] = "http://%s/connection/%s" % (
+                self.ip, self.get_name())
+            status["protocols"] = self.protocols
+            status["app"] = App.get_instance(sec)
 
         self.set_app_status(status)
         self.finish()
@@ -174,10 +181,10 @@ class LEAP(tornado.web.RequestHandler):
 
     def launch(self, data):
         appurl = string.Template(self.url).substitute(query=data)
-        if not fullscreen:
+        if not Enviroment.fullscreen:
             appurl = '--app="%s"' % appurl
-        command_line = """%s --incognito --kiosk --user-agent="%s"  %s"""  % (
-            chrome, user_agent, appurl)
+        command_line = """%s --incognito --no-first-run --kiosk --user-agent="%s"  %s"""  % (
+            Enviroment.chrome, Enviroment.user_agent, appurl)
         args = shlex.split(command_line)
         return subprocess.Popen(args)
 
@@ -192,7 +199,7 @@ class LEAP(tornado.web.RequestHandler):
     def toInfo(cls):
         data = copy.deepcopy(cls.application_status)
         data["name"] = cls.__name__
-        data = global_status.get(cls.__name__, data)
+        data = Enviroment.global_status.get(cls.__name__, data)
         return string.Template(dedent(cls.service)).substitute(data)
 
 
@@ -265,14 +272,13 @@ class DeviceHandler(tornado.web.RequestHandler):
 
     def get(self):
         if self.request.uri == "/apps":
-            for app, astatus in global_status.items():
+            for app, astatus in Enviroment.global_status.items():
                 if astatus["state"] == "running":
                     self.redirect("/apps/%s" % app)
             self.set_status(204)
             self.set_header(
                 "Access-Control-Allow-Method", "GET, POST, DELETE, OPTIONS")
             self.set_header("Access-Control-Expose-Headers", "Location")
-            self.finish()
         else:
             self.set_header(
                 "Access-Control-Allow-Method", "GET, POST, DELETE, OPTIONS")
@@ -282,8 +288,8 @@ class DeviceHandler(tornado.web.RequestHandler):
             self.set_header("Content-Type", "application/xml")
             self.write(string.Template(dedent(self.device)).substitute(
                 dict(
-                    uuid=uuid.uuid5(uuid.NAMESPACE_DNS, friendlyName),
-                    friendlyName=friendlyName,
+                    uuid=uuid.uuid5(uuid.NAMESPACE_DNS, Enviroment.friendlyName),
+                    friendlyName=Enviroment.friendlyName,
                     path="http://%s" % self.request.host)
             )
             )
@@ -291,71 +297,22 @@ class DeviceHandler(tornado.web.RequestHandler):
 
 class ChannelFactory(tornado.web.RequestHandler):
 
+    @tornado.web.asynchronous
     def post(self, app=None):
+        self.app = App.get_instance(app)
         self.set_header(
             "Access-Control-Allow-Method", "POST, OPTIONS")
         self.set_header("Access-Control-Allow-Headers", "Content-Type")
         self.set_header("Content-Type", "application/json")
+        if self.app.get_recv_count() >= 1:
+            self.app.new_channel()
         self.finish(
-            '{"URL":"ws://192.168.3.22:8008/session?28","pingInterval":5}')
+            '{"URL":"ws://192.168.3.22:8008/session/%s?%s","pingInterval":3}' % (
+                app, self.app.get_apps_count())
+        )
 
 
-class WS(tornado.websocket.WebSocketHandler):
-
-    def open(self, app=None):
-        self.app = app
-        logging.info("%s opened %s" %
-                     (self.__class__.__name__, self.request.uri))
-        self.cmd_id = 0
-
-    def on_message(self, message):
-        cmd = json.loads(message)
-        self.on_cmd(cmd)
-
-    def on_cmd(self, cmd):
-        print(cmd)
-
-    def on_close(self):
-        logging.info("%s closed %s" %
-                     (self.__class__.__name__, self.request.uri))
-
-    def reply(self, msg):
-        msg["cmd_id"] = self.cmd_id
-        self.write_message((json.dumps(msg)))
-        self.cmd_id += 1
-
-
-class ReceiverChannel(WS):
-    """
-    ws /connection
-    From 1st screen app
-    """
-    def on_cmd(self, cmd):
-        if cmd["type"] == "REGISTER":
-            logging.info("New ReceiverChannel for app %s" %cmd)
-            self.info = cmd
-            self.new_request()
-        if cmd["type"] == "CHANNELRESPONSE":
-            self.new_chanell()
-
-    def new_chanell(self):
-        ws = "ws://localhost:8008/connection/%s" % self.info["name"]
-        self.reply(
-            {"type": "NEWCHANNEL", "senderId": "1", "requestId": "123456", "URL": ws})
-
-    def new_request(self):
-        logging.info("New CHANNELREQUEST for app %s" % (self.info["name"]))
-        self.reply(
-            {"type": "CHANNELREQUEST", "requestId": "0", "senderId": "0"})
-
-
-class ApplicationChannel(WS):
-    """
-    ws /session
-    From 2nd screen app
-    """
-
-class CastPlatform(WS):
+class CastPlatform(tornado.websocket.WebSocketHandler):
 
     """
     Remote control over WebSocket.
@@ -369,6 +326,192 @@ class CastPlatform(WS):
 
     Device control:
 
+    """
+
+    def on_message(self, message):
+        print
+
+
+class App(object):
+
+    """
+    Used to relay messages between app Enviroment.channels
+    """
+    name = ""
+    remotes = list()
+    receivers = list()
+    rec_queue = list()
+    control_channel = None
+    info = None
+
+    @classmethod
+    def get_instance(cls, app):
+
+        if Enviroment.channels.has_key(app):
+            return Enviroment.channels[app]
+        else:
+            instance = App()
+            instance.name = app
+            Enviroment.channels[app] = instance
+            return instance
+
+    @classmethod
+    def stop(cls, app):
+
+        if Enviroment.channels.has_key(app.name):
+            del Enviroment.channels[app.name]
+
+    def set_control_channel(self, channel):
+
+        logging.info("Channel for app %s set", channel)
+        self.control_channel = channel
+        Enviroment.channels[self.name] = self
+
+    def get_apps_count(self):
+        return len(self.remotes)
+
+    def get_recv_count(self):
+        return len(self.receivers)
+
+    def add_remote(self, remote):
+        self.remotes.append(remote)
+
+    def add_receiver(self, receiver):
+        self.receivers.append(receiver)
+        self.rec_queue.append(deque())
+
+    def get_deque(self, instance):
+        try:
+            id = self.receivers.index(instance)
+            return self.rec_queue[id]
+        except Exception:
+            queue = deque()
+            self.rec_queue.append(queue)
+            return queue
+
+    def get_app_channel(self, receiver):
+        try:
+            return self.remotes[self.receivers.index(receiver)]
+        except Exception:
+            return None
+
+    def get_recv_channel(self, app):
+        try:
+            return self.receivers[self.remotes.index(app)]
+        except Exception:
+            return None
+
+    def new_channel(self):
+        logging.info("Channel for app %s set", self.control_channel)
+        self.control_channel.new_channel()
+
+
+class ServiceChannel(tornado.websocket.WebSocketHandler):
+
+    """
+    ws /connection
+    From 1st screen app
+    """
+
+    def open(self, app=None):
+        self.app = App.get_instance(app)
+        self.app.set_control_channel(self)
+
+    def on_message(self, message):
+        cmd = json.loads(message)
+        if cmd["type"] == "REGISTER":
+            self.app.info = cmd
+            self.new_request()
+        if cmd["type"] == "CHANNELRESPONSE":
+            self.new_channel()
+
+    def reply(self, msg):
+        self.write_message((json.dumps(msg)))
+
+    def new_channel(self):
+
+        ws = "ws://localhost:8008/receiver/%s" % self.app.info["name"]
+        self.reply(
+            {
+                "type": "NEWCHANNEL",
+                "senderId": self.app.get_recv_count(),
+                "requestId": self.app.get_apps_count(),
+                "URL": ws
+            }
+        )
+
+    def new_request(self):
+        logging.info("New CHANNELREQUEST for app %s" % (self.app.info["name"]))
+        self.reply(
+            {
+                "type": "CHANNELREQUEST",
+                "senderId": self.app.get_recv_count(),
+                "requestId": self.app.get_apps_count(),
+            }
+        )
+
+    def on_close(self):
+        App.stop(self.app)
+
+
+class WSC(tornado.websocket.WebSocketHandler):
+
+    def open(self, app=None):
+        self.app = App.get_instance(app)
+        self.cname = self.__class__.__name__
+
+        if self.cname == "ReceiverChannel":
+            self.app.add_receiver(self)
+            queue = self.app.get_deque(self)
+            if len(queue) > 0:
+                for i in xrange(0, len(queue)):
+                    self.write_message(queue.pop())
+
+        if self.cname == "ApplicationChannel":
+            self.app.add_remote(self)
+
+        logging.info("%s opened %s" %
+                     (self.cname, self.request.uri))
+
+    def on_message(self, message):
+        print("%s: %s" % (self.cname, message))
+
+        if self.cname == "ReceiverChannel":
+            channel = self.app.get_app_channel(self)
+            if channel:
+                channel.write_message(message)
+
+        if self.cname == "ApplicationChannel":
+            channel = self.app.get_recv_channel(self)
+            if channel:
+                channel.write_message(message)
+            else:
+                queue = self.app.get_deque(self)
+                queue.append(message)
+
+    def on_close(self):
+        if self.cname == "ReceiverChannel":
+            self.app.receivers.remove(self)
+        if self.cname == "ApplicationChannel":
+            self.app.remotes.remove(self)
+
+        logging.info("%s closed %s" %
+                     (self.cname, self.request.uri))
+
+
+class ReceiverChannel(WSC):
+
+    """
+    ws /receiver/$app
+    From 1nd screen app
+    """
+
+
+class ApplicationChannel(WSC):
+
+    """
+    ws /session/$app
+    From 2nd screen app
     """
 
 
@@ -396,9 +539,10 @@ class HTTPThread(object):
             self.register_app(TicTacToe),
             self.register_app(Fling),
 
-            (r"/connection", ReceiverChannel),
-            (r"/session", ApplicationChannel),
+            (r"/connection", ServiceChannel),
             (r"/connection/([^\/]+)", ChannelFactory),
+            (r"/receiver/([^\/]+)", ReceiverChannel),
+            (r"/session/([^\/]+)", ApplicationChannel),
             (r"/system/control", CastPlatform),
         ])
         self.application.listen(8008, address=self.iface)
@@ -431,19 +575,19 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.name:
-        friendlyName = args.name
-        logging.info("Service name is %s" % friendlyName)
+        Enviroment.friendlyName = args.name
+        logging.info("Service name is %s" % args.name)
 
     if args.user_agent:
-        user_agent = args.user_agent
-        logging.info("User agent is %s" % user_agent)
+        Enviroment.user_agent = args.user_agent
+        logging.info("User agent is %s" % args.user_agent)
 
     if args.chrome:
-        chrome = args.chrome
-        logging.info("Chrome path is %s" % chrome)
+        Enviroment.chrome = args.chrome
+        logging.info("Chrome path is %s" % args.chrome)
 
     if args.fullscreen:
-        fullscreen = True
+        Enviroment.fullscreen = True
 
     server = HTTPThread(args.iface)
     server.start()
