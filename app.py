@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python2
 
 # Python program that emulates ChromeCast device
 
@@ -304,8 +304,6 @@ class ChannelFactory(tornado.web.RequestHandler):
             "Access-Control-Allow-Method", "POST, OPTIONS")
         self.set_header("Access-Control-Allow-Headers", "Content-Type")
         self.set_header("Content-Type", "application/json")
-        if self.app.get_recv_count() >= 1:
-            self.app.get_control_channel().new_channel()
         self.finish(
             '{"URL":"ws://192.168.3.22:8008/session/%s?%s","pingInterval":3}' % (
                 app, self.app.get_apps_count())
