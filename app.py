@@ -133,7 +133,6 @@ class LEAP(tornado.web.RequestHandler):
         self.clear()
         self.set_status(201)
         self.set_header("Location", self._getLocation(self.get_name()))
-        print self.request.body
         status = self.get_app_status()
         if status["pid"] is None:
             status["state"] = "running"
@@ -299,13 +298,14 @@ class ChannelFactory(tornado.web.RequestHandler):
 
     @tornado.web.asynchronous
     def post(self, app=None):
+
         self.app = App.get_instance(app)
         self.set_header(
             "Access-Control-Allow-Method", "POST, OPTIONS")
         self.set_header("Access-Control-Allow-Headers", "Content-Type")
         self.set_header("Content-Type", "application/json")
         if self.app.get_recv_count() >= 1:
-            self.app.new_channel()
+            self.app.get_control_channel().new_channel()
         self.finish(
             '{"URL":"ws://192.168.3.22:8008/session/%s?%s","pingInterval":3}' % (
                 app, self.app.get_apps_count())
@@ -341,7 +341,7 @@ class App(object):
     remotes = list()
     receivers = list()
     rec_queue = list()
-    control_channel = None
+    control_channel = list()
     info = None
 
     @classmethod
@@ -361,11 +361,14 @@ class App(object):
         if Enviroment.channels.has_key(app.name):
             del Enviroment.channels[app.name]
 
-    def set_control_channel(self, channel):
+    def set_control_channel(self, ch):
 
-        logging.info("Channel for app %s set", channel)
-        self.control_channel = channel
-        Enviroment.channels[self.name] = self
+        logging.info("Channel for app %s set", ch)
+        self.control_channel.append(ch)
+
+    def get_control_channel(self):
+        logging.info("Channel for app %s set", self.control_channel[0])
+        return self.control_channel[0]
 
     def get_apps_count(self):
         return len(self.remotes)
@@ -400,11 +403,6 @@ class App(object):
             return self.receivers[self.remotes.index(app)]
         except Exception:
             return None
-
-    def new_channel(self):
-        logging.info("Channel for app %s set", self.control_channel)
-        self.control_channel.new_channel()
-
 
 class ServiceChannel(tornado.websocket.WebSocketHandler):
 
@@ -474,7 +472,7 @@ class WSC(tornado.websocket.WebSocketHandler):
                      (self.cname, self.request.uri))
 
     def on_message(self, message):
-        print("%s: %s" % (self.cname, message))
+        logging.debug("%s: %s" % (self.cname, message))
 
         if self.cname == "ReceiverChannel":
             channel = self.app.get_app_channel(self)
