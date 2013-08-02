@@ -17,7 +17,7 @@ On real device enabled apps are fetched from https://clients3.google.com/cast/ch
 
 Clone this directory, then run ```python setup.py develop```
 
-*** Because updates are frequent I don't recommend normal install. When package is stable enough it wil bi published to python index and easy installable.
+*** Because updates are frequent I don't recommend normal install. When package is stable enough it will be published to python index and easy installable.
 
 ```
 usage: leapcast [-h] [--name NAME] [--user_agent USER_AGENT]
