@@ -9,6 +9,7 @@ import tornado.web
 
 
 class App(object):
+
     '''
     Used to relay messages between app Environment.channels
     '''
@@ -81,6 +82,7 @@ class App(object):
 
 
 class ServiceChannel(tornado.websocket.WebSocketHandler):
+
     '''
     ws /connection
     From 1st screen app
@@ -128,19 +130,10 @@ class ServiceChannel(tornado.websocket.WebSocketHandler):
 
 
 class WSC(tornado.websocket.WebSocketHandler):
+
     def open(self, app=None):
         self.app = App.get_instance(app)
         self.cname = self.__class__.__name__
-
-        if self.cname == "ReceiverChannel":
-            self.app.add_receiver(self)
-            queue = self.app.get_deque(self)
-            if len(queue) > 0:
-                for i in xrange(0, len(queue)):
-                    self.write_message(queue.pop())
-
-        if self.cname == "ApplicationChannel":
-            self.app.add_remote(self)
 
         logging.info("%s opened %s" %
                      (self.cname, self.request.uri))
@@ -148,44 +141,62 @@ class WSC(tornado.websocket.WebSocketHandler):
     def on_message(self, message):
         logging.debug("%s: %s" % (self.cname, message))
 
-        if self.cname == "ReceiverChannel":
-            channel = self.app.get_app_channel(self)
-            if channel:
-                channel.write_message(message)
-
-        if self.cname == "ApplicationChannel":
-            channel = self.app.get_recv_channel(self)
-            if channel:
-                channel.write_message(message)
-            else:
-                queue = self.app.get_deque(self)
-                queue.append(message)
-
     def on_close(self):
-        if self.cname == "ReceiverChannel":
-            self.app.receivers.remove(self)
-        if self.cname == "ApplicationChannel":
-            self.app.remotes.remove(self)
-
         logging.info("%s closed %s" %
                      (self.cname, self.request.uri))
 
 
 class ReceiverChannel(WSC):
+
     '''
     ws /receiver/$app
     From 1nd screen app
     '''
+    def open(self, app=None):
+        super(ReceiverChannel, self).open(app)
+        self.app.add_receiver(self)
+        queue = self.app.get_deque(self)
+        if len(queue) > 0:
+            for i in xrange(0, len(queue)):
+                self.write_message(queue.pop())
+
+    def on_message(self, message):
+        super(ReceiverChannel, self).on_message(message)
+        channel = self.app.get_app_channel(self)
+        if channel:
+            channel.write_message(message)
+
+    def on_close(self):
+        self.app.receivers.remove(self)
+        super(ReceiverChannel, self).on_close()
 
 
 class ApplicationChannel(WSC):
+
     '''
     ws /session/$app
     From 2nd screen app
     '''
+    def open(self, app=None):
+        super(ApplicationChannel, self).open(app)
+        self.app.add_remote(self)
+
+    def on_message(self, message):
+        super(ApplicationChannel, self).on_message(message)
+        channel = self.app.get_recv_channel(self)
+        if channel:
+            channel.write_message(message)
+        else:
+            queue = self.app.get_deque(self)
+            queue.append(message)
+
+    def on_close(self):
+        self.app.remotes.remove(self)
+        super(ApplicationChannel, self).on_close()
 
 
 class CastPlatform(tornado.websocket.WebSocketHandler):
+
     '''
     Remote control over WebSocket.
 
