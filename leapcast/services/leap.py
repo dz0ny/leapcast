@@ -1,17 +1,15 @@
-import string
-from textwrap import dedent
+from __future__ import unicode_literals
+
 import shlex
 import subprocess
 import copy
-from __future__ import unicode_literals
 
 from leapcast.environment import Environment
-from twisted.internet import reactor
-from twisted.internet.protocol import DatagramProtocol
 import tornado.ioloop
 import tornado.web
 import tornado.websocket
 from leapcast.services.websocket import App
+from leapcast.utils import render
 
 
 class LEAP(tornado.web.RequestHandler):
@@ -24,7 +22,7 @@ class LEAP(tornado.web.RequestHandler):
         protocols="",
         app=None
     )
-    service = """<?xml version="1.0" encoding="UTF-8"?>
+    service = '''<?xml version="1.0" encoding="UTF-8"?>
     <service xmlns="urn:dial-multiscreen-org:schemas:dial">
         <name>$name</name>
         <options allowStop="true"/>
@@ -38,11 +36,15 @@ class LEAP(tornado.web.RequestHandler):
         <state>$state</state>
         $link
     </service>
-    """
+    '''
 
     ip = None
     url = "$query"
-    protocols = ""
+    supported_protocols = ["ramp"]
+
+    @property
+    def protocols(self):
+        return '\n '.join('<protocol>{0}</protocol>'.format(w) for w in self.supported_protocols)
 
     def get_name(self):
         return self.__class__.__name__
@@ -73,14 +75,14 @@ class LEAP(tornado.web.RequestHandler):
 
     @tornado.web.asynchronous
     def post(self, sec):
-        """Start app"""
+        '''Start app'''
         self.clear()
         self.set_status(201)
         self.set_header("Location", self._getLocation(self.get_name()))
         status = self.get_app_status()
         if status["pid"] is None:
             status["state"] = "running"
-            status["link"] = """<link rel="run" href="web-1"/>"""
+            status["link"] = '''<link rel="run" href="web-1"/>'''
             status["pid"] = self.launch(self.request.body)
             status["connectionSvcURL"] = "http://%s/connection/%s" % (
                 self.ip, self.get_name())
@@ -92,7 +94,7 @@ class LEAP(tornado.web.RequestHandler):
 
     @tornado.web.asynchronous
     def get(self, sec):
-        """Status of an app"""
+        '''Status of an app'''
         self.clear()
         if self.get_app_status()["pid"]:
             # app crashed or closed
@@ -107,7 +109,7 @@ class LEAP(tornado.web.RequestHandler):
 
     @tornado.web.asynchronous
     def delete(self, sec):
-        """Close app"""
+        '''Close app'''
         self.clear()
         self.destroy(self.get_app_status()["pid"])
         status = self.get_status_dict()
@@ -122,10 +124,10 @@ class LEAP(tornado.web.RequestHandler):
         return "http://%s/apps/%s/web-1" % (self.ip, app)
 
     def launch(self, data):
-        appurl = string.Template(self.url).substitute(query=data)
+        appurl = render(self.url).substitute(query=data)
         if not Environment.fullscreen:
             appurl = '--app="%s"' % appurl
-        command_line = """%s --incognito --no-first-run --kiosk --user-agent="%s"  %s""" % (
+        command_line = '''%s --incognito --no-first-run --kiosk --user-agent="%s"  %s''' % (
             Environment.chrome, Environment.user_agent, appurl)
         args = shlex.split(command_line)
         return subprocess.Popen(args)
@@ -135,11 +137,11 @@ class LEAP(tornado.web.RequestHandler):
             pid.terminate()
 
     def _toXML(self, data):
-        return string.Template(dedent(self.service)).substitute(data)
+        return render(self.service).substitute(data)
 
     @classmethod
     def toInfo(cls):
         data = copy.deepcopy(cls.application_status)
         data["name"] = cls.__name__
         data = Environment.global_status.get(cls.__name__, data)
-        return string.Template(dedent(cls.service)).substitute(data)
+        return render(cls.service).substitute(data)

@@ -1,3 +1,5 @@
+# -*- coding: utf8 -*-
+
 from __future__ import unicode_literals
 from collections import deque
 import json
@@ -7,9 +9,9 @@ import tornado.web
 
 
 class App(object):
-    """
+    '''
     Used to relay messages between app Environment.channels
-    """
+    '''
     name = ""
     remotes = list()
     receivers = list()
@@ -20,7 +22,7 @@ class App(object):
     @classmethod
     def get_instance(cls, app):
 
-        if Environment.channels.has_key(app):
+        if app in Environment.channels:
             return Environment.channels[app]
         else:
             instance = App()
@@ -31,7 +33,7 @@ class App(object):
     @classmethod
     def stop(cls, app):
 
-        if Environment.channels.has_key(app.name):
+        if app.name in Environment.channels:
             del Environment.channels[app.name]
 
     def set_control_channel(self, ch):
@@ -79,10 +81,10 @@ class App(object):
 
 
 class ServiceChannel(tornado.websocket.WebSocketHandler):
-    """
+    '''
     ws /connection
     From 1st screen app
-    """
+    '''
 
     def open(self, app=None):
         self.app = App.get_instance(app)
@@ -170,21 +172,21 @@ class WSC(tornado.websocket.WebSocketHandler):
 
 
 class ReceiverChannel(WSC):
-    """
+    '''
     ws /receiver/$app
     From 1nd screen app
-    """
+    '''
 
 
 class ApplicationChannel(WSC):
-    """
+    '''
     ws /session/$app
     From 2nd screen app
-    """
+    '''
 
 
 class CastPlatform(tornado.websocket.WebSocketHandler):
-    """
+    '''
     Remote control over WebSocket.
 
     Commands are:
@@ -196,7 +198,7 @@ class CastPlatform(tornado.websocket.WebSocketHandler):
 
     Device control:
 
-    """
+    '''
 
     def on_message(self, message):
-        print
+        pass

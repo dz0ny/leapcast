@@ -1,7 +1,5 @@
 from __future__ import unicode_literals
 
-# pylint: disable = E0611,F0401
-# pylint: enable = E0611,F0401
 import sys
 
 if not (2, 7) <= sys.version_info < (3,):

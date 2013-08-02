@@ -1,15 +1,13 @@
-import string
-from textwrap import dedent
-import uuid
 from __future__ import unicode_literals
 
 from leapcast.environment import Environment
 from leapcast.services.websocket import App
+from leapcast.utils import render
 import tornado.web
 
 
 class DeviceHandler(tornado.web.RequestHandler):
-    device = """<?xml version="1.0" encoding="utf-8"?>
+    device = '''<?xml version="1.0" encoding="utf-8"?>
     <root xmlns="urn:schemas-upnp-org:device-1-0" xmlns:r="urn:restful-tv-org:schemas:upnp-dd">
         <specVersion>
         <major>1</major>
@@ -21,7 +19,7 @@ class DeviceHandler(tornado.web.RequestHandler):
             <friendlyName>$friendlyName</friendlyName>
             <manufacturer>Google Inc.</manufacturer>
             <modelName>Eureka Dongle</modelName>
-            <UDN>uuid:$uuid</UDN>
+            <UDN>uuid:94147b27-fb93-5a2a-b502-66b49524242f</UDN>
             <serviceList>
                 <service>
                     <serviceType>urn:schemas-upnp-org:service:dail:1</serviceType>
@@ -32,7 +30,7 @@ class DeviceHandler(tornado.web.RequestHandler):
                 </service>
             </serviceList>
         </device>
-    </root>"""
+    </root>'''
 
     def get(self):
         if self.request.uri == "/apps":
@@ -50,10 +48,8 @@ class DeviceHandler(tornado.web.RequestHandler):
             self.add_header(
                 "Application-URL", "http://%s/apps" % self.request.host)
             self.set_header("Content-Type", "application/xml")
-            self.write(string.Template(dedent(self.device)).substitute(
+            self.write(render(self.device).substitute(
                 dict(
-                    uuid=uuid.uuid5(
-                        uuid.NAMESPACE_DNS, Environment.friendlyName),
                     friendlyName=Environment.friendlyName,
                     path="http://%s" % self.request.host)
             )
@@ -61,6 +57,7 @@ class DeviceHandler(tornado.web.RequestHandler):
 
 
 class ChannelFactory(tornado.web.RequestHandler):
+
     @tornado.web.asynchronous
     def post(self, app=None):
         self.app = App.get_instance(app)
@@ -69,6 +66,6 @@ class ChannelFactory(tornado.web.RequestHandler):
         self.set_header("Access-Control-Allow-Headers", "Content-Type")
         self.set_header("Content-Type", "application/json")
         self.finish(
-            '{"URL":"ws://192.168.3.22:8008/session/%s?%s","pingInterval":3}' % (
-                app, self.app.get_apps_count())
+            '{"URL":"ws://%s/session/%s?%s","pingInterval":3}' % (
+            self.request.host, app, self.app.get_apps_count())
         )

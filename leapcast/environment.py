@@ -6,17 +6,15 @@ import logging
 class Environment(object):
     channels = dict()
     global_status = dict()
-    friendlyName = "Mopidy"
+    friendlyName = "leapcast"
     user_agent = "Mozilla/5.0 (CrKey - 0.9.3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/30.0.1573.2 Safari/537.36"
-    chrome = "/opt/google/chrome/chrome"
+    chrome = "/usr/bin/chromium-browser"
     fullscreen = False
     interface = None
 
 
 def parse_cmd():
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        '--iface', help='Interface you want to bind to (for example 192.168.1.22)', default='')
     parser.add_argument('--name', help='Friendly name for this device')
     parser.add_argument('--user_agent', help='Custom user agent')
     parser.add_argument('--chrome', help='Path to Google Chrome executable')
@@ -25,12 +23,8 @@ def parse_cmd():
     args = parser.parse_args()
 
     if args.name:
-        Environment.interface = args.iface
-        logging.info("Service name is %s" % args.iface)
-
-    if args.name:
         Environment.friendlyName = args.name
-        logging.info("Service name is %s" % args.name)
+        logging.info("Service name is %s" % Environment.friendlyName)
 
     if args.user_agent:
         Environment.user_agent = args.user_agent

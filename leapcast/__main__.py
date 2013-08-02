@@ -1,13 +1,16 @@
+#!/usr/bin/env python
+# -*- coding: utf8 -*-
+
 from __future__ import unicode_literals
 import threading
 import signal
 import logging
 
 from twisted.internet import reactor
-from twisted.internet.protocol import DatagramProtocol
 import tornado.ioloop
 import tornado.web
 import tornado.websocket
+from leapcast.environment import parse_cmd
 from leapcast.apps.default import *
 from leapcast.services.rest import *
 from leapcast.services.ssdp import LeapUPNPServer
@@ -57,10 +60,10 @@ class HTTPThread(object):
 
 def main():
     logging.basicConfig(level=logging.INFO)
+    parse_cmd()
 
     server = HTTPThread()
     server.start()
-
     signal.signal(signal.SIGTERM, server.sig_handler)
     signal.signal(signal.SIGINT, server.sig_handler)
 
