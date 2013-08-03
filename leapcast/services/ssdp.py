@@ -5,6 +5,7 @@ import socket
 from twisted.internet import reactor
 from twisted.internet.protocol import DatagramProtocol
 from leapcast.utils import render
+from leapcast.environment import Environment
 
 
 class SSDP(DatagramProtocol):
@@ -16,7 +17,7 @@ class SSDP(DatagramProtocol):
     CACHE-CONTROL: max-age=1800\r
     CONFIGID.UPNP.ORG: 7337\r
     BOOTID.UPNP.ORG: 7337\r
-    USN: uuid:94147b27-fb93-5a2a-b502-66b49524242f\r
+    USN: uuid:$uuid\r
     ST: urn:dial-multiscreen-org:service:dial:1\r
     \r
     '''
@@ -43,7 +44,8 @@ class SSDP(DatagramProtocol):
     def datagramReceived(self, datagram, address):
         if "urn:dial-multiscreen-org:service:dial:1" in datagram and "M-SEARCH" in datagram:
             data = render(self.header).substitute(
-                ip=self.get_remote_ip(address)
+                ip=self.get_remote_ip(address),
+                uuid=Environment.uuid
             )
             self.transport.write(data, address)
 

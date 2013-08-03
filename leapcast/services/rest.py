@@ -19,7 +19,7 @@ class DeviceHandler(tornado.web.RequestHandler):
             <friendlyName>$friendlyName</friendlyName>
             <manufacturer>Google Inc.</manufacturer>
             <modelName>Eureka Dongle</modelName>
-            <UDN>uuid:94147b27-fb93-5a2a-b502-66b49524242f</UDN>
+            <UDN>uuid:$uuid</UDN>
             <serviceList>
                 <service>
                     <serviceType>urn:schemas-upnp-org:service:dail:1</serviceType>
@@ -51,6 +51,7 @@ class DeviceHandler(tornado.web.RequestHandler):
             self.write(render(self.device).substitute(
                 dict(
                     friendlyName=Environment.friendlyName,
+                    uuid=Environment.uuid,
                     path="http://%s" % self.request.host)
             )
             )
