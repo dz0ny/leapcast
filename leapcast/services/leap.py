@@ -13,12 +13,32 @@ from leapcast.services.websocket import App
 from leapcast.utils import render
 
 
+class Browser(object):
+
+    def __init__(self, appurl):
+        if not Environment.fullscreen:
+            appurl = '--app="%s"' % appurl
+        command_line = '''%s --incognito --no-first-run --kiosk --user-agent="%s"  %s''' % (
+            Environment.chrome, Environment.user_agent, appurl)
+        args = shlex.split(command_line)
+        self.pid = subprocess.Popen(args)
+
+    def destroy(self):
+        self.pid.terminate()
+
+    def is_running(self):
+        return self.pid.poll() is None
+
+    def __bool__(self):
+        return self.is_running()
+
+
 class LEAP(tornado.web.RequestHandler):
     application_status = dict(
         name="",
         state="stopped",
         link="",
-        pid=None,
+        browser=None,
         connectionSvcURL="",
         protocols="",
         app=None
@@ -81,10 +101,11 @@ class LEAP(tornado.web.RequestHandler):
         self.set_status(201)
         self.set_header("Location", self._getLocation(self.get_name()))
         status = self.get_app_status()
-        if status["pid"] is None:
+        if status["browser"] is None:
             status["state"] = "running"
             status["link"] = '''<link rel="run" href="web-1"/>'''
-            status["pid"] = self.launch(self.request.body)
+            appurl = render(self.url).substitute(query=self.request.body)
+            status["browser"] = Browser(appurl)
             status["connectionSvcURL"] = "http://%s/connection/%s" % (
                 self.ip, self.get_name())
             status["protocols"] = self.protocols
@@ -97,48 +118,37 @@ class LEAP(tornado.web.RequestHandler):
     def get(self, sec):
         '''Status of an app'''
         self.clear()
-        if self.get_app_status()["pid"]:
+        browser = self.get_app_status()["browser"]
+        if not browser:
             logging.debug("App crashed or closed")
             # app crashed or closed
-            if self.get_app_status()["pid"].poll() is not None:
-                status = self.get_status_dict()
-                status["state"] = "stopped"
-                status["link"] = ""
-                status["pid"] = None
+            status = self.get_status_dict()
+            status["state"] = "stopped"
+            status["link"] = ""
+            status["browser"] = None
+            self.set_app_status(status)
 
-                self.set_app_status(status)
         self._response()
 
     @tornado.web.asynchronous
     def delete(self, sec):
         '''Close app'''
         self.clear()
-        self.destroy(self.get_app_status()["pid"])
+        browser = self.get_app_status()["browser"]
+        if browser is not None:
+            browser.destroy()
+        else:
+            logging.warning("App already closed in destroy()")
         status = self.get_status_dict()
         status["state"] = "stopped"
         status["link"] = ""
-        status["pid"] = None
+        status["browser"] = None
 
         self.set_app_status(status)
         self._response()
 
     def _getLocation(self, app):
         return "http://%s/apps/%s/web-1" % (self.ip, app)
-
-    def launch(self, data):
-        appurl = render(self.url).substitute(query=data)
-        if not Environment.fullscreen:
-            appurl = '--app="%s"' % appurl
-        command_line = '''%s --incognito --no-first-run --kiosk --user-agent="%s"  %s''' % (
-            Environment.chrome, Environment.user_agent, appurl)
-        args = shlex.split(command_line)
-        return subprocess.Popen(args)
-
-    def destroy(self, pid):
-        if pid is not None:
-            pid.terminate()
-        else:
-            logging.warning("App already closed in destroy()")
 
     def _toXML(self, data):
         return render(self.service).substitute(data)
