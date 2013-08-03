@@ -15,7 +15,19 @@ On real device enabled apps are fetched from https://clients3.google.com/cast/ch
 
 ## How to install
 
+### Simple
+
 Clone this directory, then run ```python setup.py develop```
+
+### Better
+
+```
+git clone git@github.com:dz0ny/leapcast.git
+cd ./leapcast
+sudo apt-get install virtualenvwrapper python-pip
+mkvirtualenv leapcast
+pip install .
+```
 
 *** Because updates are frequent I don't recommend normal install. When package is stable enough it will be published to python index and easy installable.
 
