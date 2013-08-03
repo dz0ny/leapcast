@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 import shlex
 import subprocess
 import copy
+import logging
 
 from leapcast.environment import Environment
 import tornado.ioloop
@@ -97,6 +98,7 @@ class LEAP(tornado.web.RequestHandler):
         '''Status of an app'''
         self.clear()
         if self.get_app_status()["pid"]:
+            logging.debug("App crashed or closed")
             # app crashed or closed
             if self.get_app_status()["pid"].poll() is not None:
                 status = self.get_status_dict()
@@ -135,6 +137,8 @@ class LEAP(tornado.web.RequestHandler):
     def destroy(self, pid):
         if pid is not None:
             pid.terminate()
+        else:
+            logging.warning("App already closed in destroy()")
 
     def _toXML(self, data):
         return render(self.service).substitute(data)
