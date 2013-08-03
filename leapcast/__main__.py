@@ -52,7 +52,7 @@ class HTTPThread(object):
 
     def register_app(self, app):
         name = app.__name__
-        return (r"(/apps/" + name + "|/apps/" + name + "/run)", app)
+        return (r"(/apps/" + name + "|/apps/" + name + ".*)", app)
 
     def sig_handler(self, sig, frame):
         tornado.ioloop.IOLoop.instance().add_callback(self.shutdown)
