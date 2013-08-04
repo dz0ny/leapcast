@@ -32,11 +32,12 @@ pip install .
 *** Because updates are frequent I don't recommend normal install. When package is stable enough it will be published to python index and easy installable.
 
 ```
-usage: leapcast [-h] [--name NAME] [--user_agent USER_AGENT]
-              [--chrome CHROME] [--fullscreen]
+usage: leapcast [-h] [-d] [--name NAME] [--user_agent USER_AGENT]
+                [--chrome CHROME] [--fullscreen]
 
 optional arguments:
   -h, --help            show this help message and exit
+  -d                    Debug
   --name NAME           Friendly name for this device
   --user_agent USER_AGENT
                         Custom user agent

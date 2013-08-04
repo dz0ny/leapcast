@@ -3,6 +3,8 @@ import argparse
 import logging
 import uuid
 
+logger = logging.getLogger('Environment')
+
 
 class Environment(object):
     channels = dict()
@@ -13,10 +15,13 @@ class Environment(object):
     fullscreen = False
     interface = None
     uuid = None
+    verbosity = logging.INFO
 
 
 def parse_cmd():
     parser = argparse.ArgumentParser()
+    parser.add_argument('-d', action='store_true',
+                        default=False, help='Debug')
     parser.add_argument('--name', help='Friendly name for this device')
     parser.add_argument('--user_agent', help='Custom user agent')
     parser.add_argument('--chrome', help='Path to Google Chrome executable')
@@ -26,18 +31,21 @@ def parse_cmd():
 
     if args.name:
         Environment.friendlyName = args.name
-        logging.info('Service name is %s' % Environment.friendlyName)
+        logger.debug('Service name is %s' % Environment.friendlyName)
 
     if args.user_agent:
         Environment.user_agent = args.user_agent
-        logging.info('User agent is %s' % args.user_agent)
+        logger.debug('User agent is %s' % args.user_agent)
 
     if args.chrome:
         Environment.chrome = args.chrome
-        logging.info('Chrome path is %s' % args.chrome)
+        logger.debug('Chrome path is %s' % args.chrome)
 
     if args.fullscreen:
         Environment.fullscreen = True
+
+    if args.d:
+        Environment.verbosity = logging.DEBUG
 
     generate_uuid()
 

@@ -16,6 +16,7 @@ from leapcast.services.rest import *
 from leapcast.services.ssdp import LeapUPNPServer
 from leapcast.services.websocket import *
 
+logger = logging.getLogger('Leapcast')
 
 class HTTPThread(object):
     def run(self):
@@ -45,13 +46,14 @@ class HTTPThread(object):
         threading.Thread(target=self.run).start()
 
     def shutdown(self, ):
-        logging.info('Stopping HTTP server')
+        logger.info('Stopping HTTP server')
         reactor.callFromThread(reactor.stop)
-        logging.info('Stopping DIAL server')
+        logger.info('Stopping DIAL server')
         tornado.ioloop.IOLoop.instance().stop()
 
     def register_app(self, app):
         name = app.__name__
+        logger.debug('Added %s app' % name)
         return (r"(/apps/" + name + "|/apps/" + name + ".*)", app)
 
     def sig_handler(self, sig, frame):
@@ -59,8 +61,8 @@ class HTTPThread(object):
 
 
 def main():
-    logging.basicConfig(level=logging.INFO)
     parse_cmd()
+    logging.basicConfig(level=Environment.verbosity)
 
     server = HTTPThread()
     server.start()
