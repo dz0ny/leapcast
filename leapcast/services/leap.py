@@ -20,9 +20,10 @@ class Browser(object):
     def __init__(self, appurl):
         if not Environment.fullscreen:
             appurl = '--app="%s"' % appurl
-        command_line = '''%s --incognito --no-first-run --kiosk --user-agent="%s"  %s''' % (
-            Environment.chrome, Environment.user_agent, appurl)
-        args = shlex.split(command_line.encode('utf8'))
+        command_line = '''--incognito --no-first-run --kiosk --user-agent="%s"  %s''' % (
+            Environment.user_agent, appurl)
+        args = [Environment.chrome]
+        args.extend(shlex.split(command_line.encode('utf8')))
         self.tmpdir = tempfile.mkdtemp(prefix='leapcast-')
         args.append('--user-data-dir=%s' % self.tmpdir)
         self.pid = subprocess.Popen(args)
