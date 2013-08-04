@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 import argparse
 import logging
+import uuid
 
 
 class Environment(object):
@@ -11,6 +12,7 @@ class Environment(object):
     chrome = "/usr/bin/chromium-browser"
     fullscreen = False
     interface = None
+    uuid = str(uuid.uuid4())
 
 
 def parse_cmd():
