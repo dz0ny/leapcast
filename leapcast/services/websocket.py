@@ -139,7 +139,13 @@ class WSC(tornado.websocket.WebSocketHandler):
                      (self.cname, self.request.uri))
 
     def on_message(self, message):
-        logging.debug("%s: %s" % (self.cname, message))
+        if Environment.verbosity is logging.DEBUG:
+            # Skip ping/pong signaling
+            if not 'ping' in message or not 'pong' in message:
+                pretty = json.loads(message)
+                message = json.dumps(
+                    pretty, sort_keys=True, indent=2, separators=(',', ': '))
+                logging.debug("%s: %s" % (self.cname, message))
 
     def on_close(self):
         logging.info("%s closed %s" %
@@ -150,7 +156,7 @@ class ReceiverChannel(WSC):
 
     '''
     ws /receiver/$app
-    From 1nd screen app
+    From 1st screen app
     '''
     def open(self, app=None):
         super(ReceiverChannel, self).open(app)
