@@ -7,6 +7,11 @@ import tornado.web
 
 
 class DeviceHandler(tornado.web.RequestHandler):
+
+    '''
+    Holds info about device
+    '''
+
     device = '''<?xml version="1.0" encoding="utf-8"?>
     <root xmlns="urn:schemas-upnp-org:device-1-0" xmlns:r="urn:restful-tv-org:schemas:upnp-dd">
         <specVersion>
@@ -59,6 +64,9 @@ class DeviceHandler(tornado.web.RequestHandler):
 
 class ChannelFactory(tornado.web.RequestHandler):
 
+    '''
+    Creates Websocket Channel. This is requested by 2nd screen application
+    '''
     @tornado.web.asynchronous
     def post(self, app=None):
         self.app = App.get_instance(app)
@@ -66,6 +74,9 @@ class ChannelFactory(tornado.web.RequestHandler):
             "Access-Control-Allow-Method", "POST, OPTIONS")
         self.set_header("Access-Control-Allow-Headers", "Content-Type")
         self.set_header("Content-Type", "application/json")
+        ## TODO: Use information from REGISTER packet
+        ## TODO: return url based on channel property
+        ## TODO: defer request until receiver connects
         self.finish(
             '{"URL":"ws://%s/session/%s?%s","pingInterval":3}' % (
             self.request.host, app, self.app.get_apps_count())
