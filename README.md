@@ -22,7 +22,7 @@ Clone this directory, then run ```python setup.py develop```
 ### Better
 
 ```
-git clone git@github.com:dz0ny/leapcast.git
+git clone https://github.com/dz0ny/leapcast.git
 cd ./leapcast
 sudo apt-get install virtualenvwrapper python-pip
 mkvirtualenv leapcast
