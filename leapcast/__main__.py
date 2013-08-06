@@ -5,6 +5,8 @@ from __future__ import unicode_literals
 import threading
 import signal
 import logging
+import sys
+from os import environ
 
 from twisted.internet import reactor
 import tornado.ioloop
@@ -63,6 +65,11 @@ class HTTPThread(object):
 def main():
     parse_cmd()
     logging.basicConfig(level=Environment.verbosity)
+
+    if sys.platform == 'darwin' and environ.get('TMUX') is not None:
+        logger.error('Running Chrome inside tmux on OS X might cause problems.'
+                     ' Please start leapcast outside tmux.')
+        sys.exit(1)
 
     server = HTTPThread()
     server.start()
