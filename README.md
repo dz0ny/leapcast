@@ -24,7 +24,7 @@ Clone this directory, then run ```python setup.py develop```
 ```
 git clone https://github.com/dz0ny/leapcast.git
 cd ./leapcast
-sudo apt-get install virtualenvwrapper python-pip
+sudo apt-get install virtualenvwrapper python-pip python-twisted-web python2.7-dev
 mkvirtualenv leapcast
 pip install .
 ```
