@@ -17,7 +17,7 @@ class PlayMovies(LEAP):
 
 
 class GoogleMusic(LEAP):
-    url = "https://jmt17.google.com/sjdev/cast/player"
+    url = "https://play.google.com/music/cast/player"
 
 
 class GoogleCastSampleApp(LEAP):
