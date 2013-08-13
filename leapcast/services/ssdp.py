@@ -4,9 +4,7 @@ from __future__ import unicode_literals
 import socket
 from leapcast.utils import render
 from leapcast.environment import Environment
-import SocketServer
 import struct
-import threading
 import logging
 import operator
 from leapcast.utils import ControlMixin
