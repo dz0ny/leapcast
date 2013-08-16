@@ -13,6 +13,8 @@ from SocketServer import ThreadingUDPServer, DatagramRequestHandler
 
 class MulticastServer(ControlMixin, ThreadingUDPServer):
 
+    allow_reuse_address = True
+
     def __init__(self, addr, handler, poll_interval=0.5, bind_and_activate=True, iface=None):
         ThreadingUDPServer.__init__(self, ('', addr[1]),
                                     handler,
