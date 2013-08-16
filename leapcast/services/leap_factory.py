@@ -18,16 +18,15 @@ class Browser(object):
 
     def __init__(self, appurl):
         args = [Environment.chrome]
-	args.append('--incognito')
-	args.append('--no-first-run')
-	args.append('--kiosk')
-	args.append('--user-agent="%s"' % Environment.user_agent)
-        args.extend(shlex.split(command_line.encode('utf8')))
+        args.append('--incognito')
+        args.append('--no-first-run')
+        args.append('--kiosk')
+        args.append('--user-agent="%s"' % Environment.user_agent)
         self.tmpdir = tempfile.mkdtemp(prefix='leapcast-')
         args.append('--user-data-dir=%s' % self.tmpdir)
-	if Environment.window_size:
-	    args.append('--window_size=%s' % Environment.window_size)
-	if Environment.fullscreen:
+        if Environment.window_size:
+            args.append('--window_size=%s' % Environment.window_size)
+        if Environment.fullscreen:
             args.append(appurl)
         else:
             # Override the kiosk mode.
