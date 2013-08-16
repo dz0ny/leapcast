@@ -13,6 +13,7 @@ class Environment(object):
     user_agent = 'Mozilla/5.0 (CrKey - 0.9.3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/30.0.1573.2 Safari/537.36'
     chrome = '/usr/bin/chromium-browser'
     fullscreen = False
+    window_size = False
     interface = None
     uuid = None
     verbosity = logging.INFO
@@ -27,6 +28,8 @@ def parse_cmd():
     parser.add_argument('--chrome', help='Path to Google Chrome executable')
     parser.add_argument('--fullscreen', action='store_true',
                         default=False, help='Start in full-screen mode')
+    parser.add_argument('--window_size', 
+                        default=False, help='Set the initial chrome window size. eg 1920,1080')
     args = parser.parse_args()
 
     if args.name:
@@ -43,6 +46,9 @@ def parse_cmd():
 
     if args.fullscreen:
         Environment.fullscreen = True
+
+    if args.window_size:
+        Environment.window_size = args.window_size
 
     if args.d:
         Environment.verbosity = logging.DEBUG
