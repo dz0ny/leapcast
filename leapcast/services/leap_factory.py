@@ -25,7 +25,7 @@ class Browser(object):
         self.tmpdir = tempfile.mkdtemp(prefix='leapcast-')
         args.append('--user-data-dir=%s' % self.tmpdir)
         if Environment.window_size:
-            args.append('--window_size=%s' % Environment.window_size)
+            args.append('--window-size=%s' % Environment.window_size)
         if Environment.fullscreen:
             args.append(appurl)
         else:
