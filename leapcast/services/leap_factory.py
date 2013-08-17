@@ -27,6 +27,7 @@ class Browser(object):
         args.append('--user-data-dir=%s' % self.tmpdir)
         if Environment.window_size:
             args.append('--window-size=%s' % Environment.window_size)
+        logging.debug(args)
         self.pid = subprocess.Popen(args)
 
     def destroy(self):
