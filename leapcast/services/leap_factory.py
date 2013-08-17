@@ -17,20 +17,16 @@ from leapcast.environment import Environment
 class Browser(object):
 
     def __init__(self, appurl):
+        if not Environment.fullscreen:
+            appurl = '--app="%s"' % appurl
+        command_line = '''--incognito --no-first-run --kiosk --user-agent="%s"  %s''' % (
+            Environment.user_agent, appurl)
         args = [Environment.chrome]
-        args.append('--incognito')
-        args.append('--no-first-run')
-        args.append('--kiosk')
-        args.append('--user-agent="%s"' % Environment.user_agent)
+        args.extend(shlex.split(command_line.encode('utf8')))
         self.tmpdir = tempfile.mkdtemp(prefix='leapcast-')
         args.append('--user-data-dir=%s' % self.tmpdir)
         if Environment.window_size:
             args.append('--window-size=%s' % Environment.window_size)
-        if Environment.fullscreen:
-            args.append(appurl)
-        else:
-            # Override the kiosk mode.
-            args.append('--app="%s"' % appurl)
         self.pid = subprocess.Popen(args)
 
     def destroy(self):
