@@ -46,6 +46,6 @@ optional arguments:
                         Custom user agent
   --chrome CHROME       Path to Google Chrome executable
   --fullscreen          Start in full-screen mode
-  --window_size		Force the initial window size (eg 1920,1080)
+  --window_size         Force the initial window size (eg 1920,1080)
 
 ```
