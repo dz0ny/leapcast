@@ -18,7 +18,7 @@ On real device enabled apps are fetched from https://clients3.google.com/cast/ch
 
 ### Simple
 
-Clone this directory, then run ```python setup.py develop```
+Clone this directory, then run ```python setup.py develop``` or ```pip install https://github.com/dz0ny/leapcast/archive/master.zip```
 
 ### Better
 
