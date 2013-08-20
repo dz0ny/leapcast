@@ -32,7 +32,7 @@ pip install .
 
 #### Windows
 
-For those on Windows(tm) follow this guide https://gist.github.com/dz0ny/6257374 or https://plus.google.com/100317092290545434762/posts/8RjWfMXxje8
+For those on Windows(tm) follow this guide https://gist.github.com/eyecatchup/6219118 or https://plus.google.com/100317092290545434762/posts/8RjWfMXxje8
 
 ```
 usage: leapcast [-h] [-d] [--name NAME] [--user_agent USER_AGENT]
