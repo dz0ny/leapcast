@@ -50,20 +50,22 @@ class LEAPfactory(tornado.web.RequestHandler):
         browser=None,
         connectionSvcURL='',
         protocols='',
+        appurl='https://www.gstatic.com/favicon.ico',
         app=None
     )
     service = '''<?xml version='1.0' encoding='UTF-8'?>
     <service xmlns='urn:dial-multiscreen-org:schemas:dial'>
         <name>$name</name>
         <options allowStop='true'/>
-        <activity-status xmlns='urn:chrome.google.com:cast'>
-            <description>Legacy</description>
-        </activity-status>
         <servicedata xmlns='urn:chrome.google.com:cast'>
             <connectionSvcURL>$connectionSvcURL</connectionSvcURL>
             <protocols>$protocols</protocols>
         </servicedata>
         <state>$state</state>
+        <activity-status xmlns="urn:chrome.google.com:cast">
+          <description>$name Receiver</description>
+          <image src="$appurl"/>
+        </activity-status>
         $link
     </service>
     '''
@@ -113,7 +115,9 @@ class LEAPfactory(tornado.web.RequestHandler):
         if status['browser'] is None:
             status['state'] = 'running'
             status['link'] = '''<link rel='run' href='web-1'/>'''
-            appurl = render(self.url).substitute(query=self.request.body)
+            appurl = render(self.url).substitute(
+                query=self.request.body).replace("&idle=windowclose", "")
+            status['browser'] = appurl
             status['browser'] = Browser(appurl)
             status['connectionSvcURL'] = 'http://%s/connection/%s' % (
                 self.ip, self.get_name())
@@ -122,6 +126,20 @@ class LEAPfactory(tornado.web.RequestHandler):
 
         self.set_app_status(status)
         self.finish()
+
+    def stop_app(self):
+        self.clear()
+        browser = self.get_app_status()['browser']
+        if browser is not None:
+            browser.destroy()
+        else:
+            logging.warning('App already closed in destroy()')
+        status = self.get_status_dict()
+        status['state'] = 'stopped'
+        status['link'] = ''
+        status['browser'] = None
+
+        self.set_app_status(status)
 
     @tornado.web.asynchronous
     def get(self, sec):
@@ -142,18 +160,7 @@ class LEAPfactory(tornado.web.RequestHandler):
     @tornado.web.asynchronous
     def delete(self, sec):
         '''Close app'''
-        self.clear()
-        browser = self.get_app_status()['browser']
-        if browser is not None:
-            browser.destroy()
-        else:
-            logging.warning('App already closed in destroy()')
-        status = self.get_status_dict()
-        status['state'] = 'stopped'
-        status['link'] = ''
-        status['browser'] = None
-
-        self.set_app_status(status)
+        self.stop_app()
         self._response()
 
     def _getLocation(self, app):

@@ -4,6 +4,7 @@ from leapcast.environment import Environment
 from leapcast.services.websocket import App
 from leapcast.utils import render
 import tornado.web
+import logging
 
 
 class DeviceHandler(tornado.web.RequestHandler):
@@ -74,9 +75,8 @@ class ChannelFactory(tornado.web.RequestHandler):
             "Access-Control-Allow-Method", "POST, OPTIONS")
         self.set_header("Access-Control-Allow-Headers", "Content-Type")
         self.set_header("Content-Type", "application/json")
-        ## TODO: Use information from REGISTER packet
-        ## TODO: return url based on channel property
-        ## TODO: defer request until receiver connects
+        self.app.create_application_channel(self.request.body)
+        logging.debug(self.request.body)
         self.finish(
             '{"URL":"ws://%s/session/%s?%s","pingInterval":3}' % (
             self.request.host, app, self.app.get_apps_count())

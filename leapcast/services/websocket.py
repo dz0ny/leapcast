@@ -6,6 +6,8 @@ import json
 import logging
 from leapcast.environment import Environment
 import tornado.web
+import copy
+import threading
 
 
 class App(object):
@@ -14,11 +16,23 @@ class App(object):
     Used to relay messages between app Environment.channels
     '''
     name = ""
+    lock = threading.Event()
     remotes = list()
     receivers = list()
     rec_queue = list()
     control_channel = list()
+    defer_control_channel = False
     info = None
+    application_status = dict(
+        name='',
+        state='stopped',
+        link='',
+        browser=None,
+        connectionSvcURL='',
+        protocols='',
+        appurl='https://www.gstatic.com/favicon.ico',
+        app=None
+    )
 
     @classmethod
     def get_instance(cls, app):
@@ -36,6 +50,9 @@ class App(object):
 
         if app.name in Environment.channels:
             del Environment.channels[app.name]
+            status = copy.deepcopy(cls.application_status)
+            status['name'] = app.name
+            Environment.global_status[app.name] = status
 
     def set_control_channel(self, ch):
 
@@ -43,8 +60,11 @@ class App(object):
         self.control_channel.append(ch)
 
     def get_control_channel(self):
-        logging.info("Channel for app %s set", self.control_channel[0])
-        return self.control_channel[0]
+        try:
+            logging.info("Channel for app %s set", self.control_channel[0])
+            return self.control_channel[0]
+        except Exception:
+            return False
 
     def get_apps_count(self):
         return len(self.remotes)
@@ -80,6 +100,30 @@ class App(object):
         except Exception:
             return None
 
+    def create_application_channel(self, data):
+        data = json.loads(data)
+        if self.get_control_channel():
+            self.get_control_channel().new_request(data)
+            self.get_control_channel().new_channel(data)
+        else:
+            CreateChannel(self.name, data, self.lock).start()
+
+
+class CreateChannel (threading.Thread):
+
+    def __init__(self, name, data, lock):
+        threading.Thread.__init__(self)
+        self.name = name
+        self.data = data
+        self.lock = lock
+
+    def run(self):
+        self.lock.wait()
+        App.get_instance(
+            self.name).get_control_channel().new_request(self.data)
+        App.get_instance(
+            self.name).get_control_channel().new_channel(self.data)
+
 
 class ServiceChannel(tornado.websocket.WebSocketHandler):
 
@@ -95,32 +139,30 @@ class ServiceChannel(tornado.websocket.WebSocketHandler):
     def on_message(self, message):
         cmd = json.loads(message)
         if cmd["type"] == "REGISTER":
+            self.app.lock.set()
             self.app.info = cmd
-            self.new_request()
-        if cmd["type"] == "CHANNELRESPONSE":
-            self.new_channel()
 
     def reply(self, msg):
         self.write_message((json.dumps(msg)))
 
-    def new_channel(self):
+    def new_channel(self, data):
 
         ws = "ws://localhost:8008/receiver/%s" % self.app.info["name"]
         self.reply(
             {
                 "type": "NEWCHANNEL",
-                "senderId": self.app.get_recv_count(),
+                "senderId": data["senderId"],
                 "requestId": self.app.get_apps_count(),
                 "URL": ws
             }
         )
 
-    def new_request(self):
+    def new_request(self, data):
         logging.info("New CHANNELREQUEST for app %s" % (self.app.info["name"]))
         self.reply(
             {
                 "type": "CHANNELREQUEST",
-                "senderId": self.app.get_recv_count(),
+                "senderId": data["senderId"],
                 "requestId": self.app.get_apps_count(),
             }
         )
@@ -140,12 +182,10 @@ class WSC(tornado.websocket.WebSocketHandler):
 
     def on_message(self, message):
         if Environment.verbosity is logging.DEBUG:
-            # Skip ping/pong signaling
-            if not 'ping' in message or not 'pong' in message:
-                pretty = json.loads(message)
-                message = json.dumps(
-                    pretty, sort_keys=True, indent=2, separators=(',', ': '))
-                logging.debug("%s: %s" % (self.cname, message))
+            pretty = json.loads(message)
+            message = json.dumps(
+                pretty, sort_keys=True, indent=2)
+            logging.debug("%s: %s" % (self.cname, message))
 
     def on_close(self):
         logging.info("%s closed %s" %
@@ -158,6 +198,7 @@ class ReceiverChannel(WSC):
     ws /receiver/$app
     From 1st screen app
     '''
+
     def open(self, app=None):
         super(ReceiverChannel, self).open(app)
         self.app.add_receiver(self)
@@ -183,6 +224,7 @@ class ApplicationChannel(WSC):
     ws /session/$app
     From 2nd screen app
     '''
+
     def open(self, app=None):
         super(ApplicationChannel, self).open(app)
         self.app.add_remote(self)
