@@ -1,13 +1,13 @@
 # -*- coding: utf8 -*-
 
 from __future__ import unicode_literals
-import string
+from tornado.template import Template
 from textwrap import dedent
 import threading
 
 
 def render(template):
-    return string.Template(dedent(template))
+    return Template(dedent(template))
 
 
 class ControlMixin(object):

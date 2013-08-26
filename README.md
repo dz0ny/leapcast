@@ -10,6 +10,7 @@ Working:
  - Youtube
  - Google Music
  - TicTacToe
+ - ChromeCast
 
 On real device enabled apps are fetched from https://clients3.google.com/cast/chromecast/device/config
 

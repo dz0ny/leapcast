@@ -50,33 +50,36 @@ class LEAPfactory(tornado.web.RequestHandler):
         browser=None,
         connectionSvcURL='',
         protocols='',
-        appurl='https://www.gstatic.com/favicon.ico',
+        appurl=False,
         app=None
     )
+
     service = '''<?xml version='1.0' encoding='UTF-8'?>
     <service xmlns='urn:dial-multiscreen-org:schemas:dial'>
-        <name>$name</name>
+        <name>{{ name }}</name>
         <options allowStop='true'/>
         <servicedata xmlns='urn:chrome.google.com:cast'>
-            <connectionSvcURL>$connectionSvcURL</connectionSvcURL>
-            <protocols>$protocols</protocols>
+            <connectionSvcURL>{{ connectionSvcURL }}</connectionSvcURL>
+            <protocols>
+                <protocol>ramp</protocol>
+            </protocols>
         </servicedata>
-        <state>$state</state>
+        <state>{{ state }}</state>
+        {% if state == "running" %}
         <activity-status xmlns="urn:chrome.google.com:cast">
-          <description>$name Receiver</description>
-          <image src="$appurl"/>
+          <description>{{ name }} Receiver</description>
+          {% if appurl %}
+          <image src="{{ appurl }}"/>
+          {% end %}
         </activity-status>
-        $link
+        {{ link }}
+         {% end %}
     </service>
     '''
 
     ip = None
-    url = '$query'
+    url = '{{query}}'
     supported_protocols = ['ramp']
-
-    @property
-    def protocols(self):
-        return '\n '.join('<protocol>{0}</protocol>'.format(w) for w in self.supported_protocols)
 
     def get_name(self):
         return self.__class__.__name__
@@ -115,13 +118,14 @@ class LEAPfactory(tornado.web.RequestHandler):
         if status['browser'] is None:
             status['state'] = 'running'
             status['link'] = '''<link rel='run' href='web-1'/>'''
-            appurl = render(self.url).substitute(
-                query=self.request.body).replace("&idle=windowclose", "")
-            status['browser'] = appurl
+            appurl = render(self.url).generate(query=self.request.body)
+            if self.get_name() is 'ChromeCast':
+                print "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!setting appurl"
+                status['appurl'] = appurl
             status['browser'] = Browser(appurl)
             status['connectionSvcURL'] = 'http://%s/connection/%s' % (
                 self.ip, self.get_name())
-            status['protocols'] = self.protocols
+            status['protocols'] = self.supported_protocols
             status['app'] = App.get_instance(sec)
 
         self.set_app_status(status)
@@ -167,11 +171,12 @@ class LEAPfactory(tornado.web.RequestHandler):
         return 'http://%s/apps/%s/web-1' % (self.ip, app)
 
     def _toXML(self, data):
-        return render(self.service).substitute(data)
+        print render(self.service)
+        return render(self.service).generate(**data)
 
     @classmethod
     def toInfo(cls):
         data = copy.deepcopy(cls.application_status)
         data['name'] = cls.__name__
         data = Environment.global_status.get(cls.__name__, data)
-        return render(cls.service).substitute(data)
+        return render(cls.service).generate(data)

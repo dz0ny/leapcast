@@ -5,8 +5,8 @@ import socket
 from leapcast.utils import render
 from leapcast.environment import Environment
 import struct
-import logging
 import operator
+import logging
 from leapcast.utils import ControlMixin
 from SocketServer import ThreadingUDPServer, DatagramRequestHandler
 
@@ -60,11 +60,11 @@ class SSDPHandler(DatagramRequestHandler):
 
     header = '''\
     HTTP/1.1 200 OK\r
-    LOCATION: http://$ip:8008/ssdp/device-desc.xml\r
+    LOCATION: http://{{ ip }}:8008/ssdp/device-desc.xml\r
     CACHE-CONTROL: max-age=1800\r
     CONFIGID.UPNP.ORG: 7337\r
     BOOTID.UPNP.ORG: 7337\r
-    USN: uuid:$uuid\r
+    USN: uuid:{{ uuid }}\r
     ST: urn:dial-multiscreen-org:service:dial:1\r
     \r
     '''
@@ -88,9 +88,7 @@ class SSDPHandler(DatagramRequestHandler):
 
     def datagramReceived(self, datagram, address):
         if "urn:dial-multiscreen-org:service:dial:1" in datagram and "M-SEARCH" in datagram:
-            logging.debug("{} wrote:".format(address))
-            logging.debug(datagram)
-            data = render(self.header).substitute(
+            data = render(self.header).generate(
                 ip=self.get_remote_ip(address),
                 uuid=Environment.uuid
             )

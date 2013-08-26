@@ -4,7 +4,6 @@ from leapcast.environment import Environment
 from leapcast.services.websocket import App
 from leapcast.utils import render
 import tornado.web
-import logging
 
 
 class DeviceHandler(tornado.web.RequestHandler):
@@ -19,13 +18,13 @@ class DeviceHandler(tornado.web.RequestHandler):
         <major>1</major>
         <minor>0</minor>
         </specVersion>
-        <URLBase>$path</URLBase>
+        <URLBase>{{ path }}</URLBase>
         <device>
             <deviceType>urn:schemas-upnp-org:device:dail:1</deviceType>
-            <friendlyName>$friendlyName</friendlyName>
+            <friendlyName>{{ friendlyName }}</friendlyName>
             <manufacturer>Google Inc.</manufacturer>
             <modelName>Eureka Dongle</modelName>
-            <UDN>uuid:$uuid</UDN>
+            <UDN>uuid:{{ uuid }}</UDN>
             <serviceList>
                 <service>
                     <serviceType>urn:schemas-upnp-org:service:dail:1</serviceType>
@@ -54,12 +53,10 @@ class DeviceHandler(tornado.web.RequestHandler):
             self.add_header(
                 "Application-URL", "http://%s/apps" % self.request.host)
             self.set_header("Content-Type", "application/xml")
-            self.write(render(self.device).substitute(
-                dict(
-                    friendlyName=Environment.friendlyName,
-                    uuid=Environment.uuid,
-                    path="http://%s" % self.request.host)
-            )
+            self.write(render(self.device).generate(
+                friendlyName=Environment.friendlyName,
+                uuid=Environment.uuid,
+                path="http://%s" % self.request.host)
             )
 
 
@@ -75,9 +72,12 @@ class ChannelFactory(tornado.web.RequestHandler):
             "Access-Control-Allow-Method", "POST, OPTIONS")
         self.set_header("Access-Control-Allow-Headers", "Content-Type")
         self.set_header("Content-Type", "application/json")
-        self.app.create_application_channel(self.request.body)
-        logging.debug(self.request.body)
+        print
+        print self.request
+        print self.request.body
+        print
         self.finish(
             '{"URL":"ws://%s/session/%s?%s","pingInterval":3}' % (
-            self.request.host, app, self.app.get_apps_count())
+                self.request.host, app, self.app.get_apps_count())
         )
+        self.app.create_application_channel(self.request.body)

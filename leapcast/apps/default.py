@@ -4,15 +4,15 @@ from leapcast.services.leap_factory import LEAPfactory
 
 
 class ChromeCast(LEAPfactory):
-    url = "https://www.gstatic.com/cv/receiver.html?$query"
+    url = "https://www.gstatic.com/cv/receiver.html?{{ query }}"
 
 
 class YouTube(LEAPfactory):
-    url = "https://www.youtube.com/tv?$query"
+    url = "https://www.youtube.com/tv?{{ query }}"
 
 
 class PlayMovies(LEAPfactory):
-    url = "https://play.google.com/video/avi/eureka?$query"
+    url = "https://play.google.com/video/avi/eureka?{{ query }}"
     supported_protocols = ['play-movies', 'ramp']
 
 
@@ -29,7 +29,7 @@ class GoogleCastPlayer(LEAPfactory):
 
 
 class Fling(LEAPfactory):
-    url = "$query"
+    url = "{{ query }}"
 
 
 class TicTacToe(LEAPfactory):

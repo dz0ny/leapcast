@@ -21,7 +21,7 @@ class App(object):
     receivers = list()
     rec_queue = list()
     control_channel = list()
-    defer_control_channel = False
+    senderid = False
     info = None
     application_status = dict(
         name='',
@@ -61,7 +61,7 @@ class App(object):
 
     def get_control_channel(self):
         try:
-            logging.info("Channel for app %s set", self.control_channel[0])
+            logging.info("Channel for app %s is", self.control_channel[0])
             return self.control_channel[0]
         except Exception:
             return False
@@ -101,10 +101,8 @@ class App(object):
             return None
 
     def create_application_channel(self, data):
-        data = json.loads(data)
         if self.get_control_channel():
-            self.get_control_channel().new_request(data)
-            self.get_control_channel().new_channel(data)
+            self.get_control_channel().new_request()
         else:
             CreateChannel(self.name, data, self.lock).start()
 
@@ -118,11 +116,9 @@ class CreateChannel (threading.Thread):
         self.lock = lock
 
     def run(self):
-        self.lock.wait()
+        self.lock.wait(30)
         App.get_instance(
             self.name).get_control_channel().new_request(self.data)
-        App.get_instance(
-            self.name).get_control_channel().new_channel(self.data)
 
 
 class ServiceChannel(tornado.websocket.WebSocketHandler):
@@ -138,31 +134,44 @@ class ServiceChannel(tornado.websocket.WebSocketHandler):
 
     def on_message(self, message):
         cmd = json.loads(message)
+        print cmd
         if cmd["type"] == "REGISTER":
             self.app.lock.set()
             self.app.info = cmd
+        if cmd["type"] == "CHANNELRESPONSE":
+            self.new_channel()
 
     def reply(self, msg):
         self.write_message((json.dumps(msg)))
 
-    def new_channel(self, data):
-
+    def new_channel(self):
+        logging.info("NEWCHANNEL for app %s" % (self.app.info["name"]))
         ws = "ws://localhost:8008/receiver/%s" % self.app.info["name"]
         self.reply(
             {
                 "type": "NEWCHANNEL",
-                "senderId": data["senderId"],
+                "senderId": self.senderid,
                 "requestId": self.app.get_apps_count(),
                 "URL": ws
             }
         )
 
-    def new_request(self, data):
-        logging.info("New CHANNELREQUEST for app %s" % (self.app.info["name"]))
+    def new_request(self, data=None):
+        logging.info("CHANNELREQUEST for app %s" % (self.app.info["name"]))
+        print data
+        if data:
+            try:
+                data = json.loads(data)
+                self.senderid = data["senderId"]
+            except Exception:
+                self.senderid = self.get_apps_count()
+        else:
+            self.senderid = self.get_apps_count()
+
         self.reply(
             {
                 "type": "CHANNELREQUEST",
-                "senderId": data["senderId"],
+                "senderId": self.senderid,
                 "requestId": self.app.get_apps_count(),
             }
         )
