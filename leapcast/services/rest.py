@@ -72,10 +72,6 @@ class ChannelFactory(tornado.web.RequestHandler):
             "Access-Control-Allow-Method", "POST, OPTIONS")
         self.set_header("Access-Control-Allow-Headers", "Content-Type")
         self.set_header("Content-Type", "application/json")
-        print
-        print self.request
-        print self.request.body
-        print
         self.finish(
             '{"URL":"ws://%s/session/%s?%s","pingInterval":3}' % (
                 self.request.host, app, self.app.get_apps_count())

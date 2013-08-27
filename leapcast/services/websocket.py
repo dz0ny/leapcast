@@ -23,16 +23,6 @@ class App(object):
     control_channel = list()
     senderid = False
     info = None
-    application_status = dict(
-        name='',
-        state='stopped',
-        link='',
-        browser=None,
-        connectionSvcURL='',
-        protocols='',
-        appurl='https://www.gstatic.com/favicon.ico',
-        app=None
-    )
 
     @classmethod
     def get_instance(cls, app):
@@ -164,9 +154,9 @@ class ServiceChannel(tornado.websocket.WebSocketHandler):
                 data = json.loads(data)
                 self.senderid = data["senderId"]
             except Exception:
-                self.senderid = self.get_apps_count()
+                self.senderid = self.app.get_apps_count()
         else:
-            self.senderid = self.get_apps_count()
+            self.senderid = self.app.get_apps_count()
 
         self.reply(
             {

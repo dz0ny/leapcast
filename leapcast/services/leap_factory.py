@@ -50,7 +50,6 @@ class LEAPfactory(tornado.web.RequestHandler):
         browser=None,
         connectionSvcURL='',
         protocols='',
-        appurl=False,
         app=None
     )
 
@@ -58,22 +57,23 @@ class LEAPfactory(tornado.web.RequestHandler):
     <service xmlns='urn:dial-multiscreen-org:schemas:dial'>
         <name>{{ name }}</name>
         <options allowStop='true'/>
+        {% if state == "running" %}
         <servicedata xmlns='urn:chrome.google.com:cast'>
             <connectionSvcURL>{{ connectionSvcURL }}</connectionSvcURL>
             <protocols>
-                <protocol>ramp</protocol>
+                {% for x in protocols %}
+                <protocol>{{ x }}</protocol>
+                {% end %}
             </protocols>
         </servicedata>
+        {% end %}
         <state>{{ state }}</state>
         {% if state == "running" %}
         <activity-status xmlns="urn:chrome.google.com:cast">
           <description>{{ name }} Receiver</description>
-          {% if appurl %}
-          <image src="{{ appurl }}"/>
-          {% end %}
         </activity-status>
-        {{ link }}
-         {% end %}
+        <link rel='run' href='web-1'/>
+        {% end %}
     </service>
     '''
 
@@ -117,11 +117,7 @@ class LEAPfactory(tornado.web.RequestHandler):
         status = self.get_app_status()
         if status['browser'] is None:
             status['state'] = 'running'
-            status['link'] = '''<link rel='run' href='web-1'/>'''
             appurl = render(self.url).generate(query=self.request.body)
-            if self.get_name() is 'ChromeCast':
-                print "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!setting appurl"
-                status['appurl'] = appurl
             status['browser'] = Browser(appurl)
             status['connectionSvcURL'] = 'http://%s/connection/%s' % (
                 self.ip, self.get_name())
@@ -140,7 +136,6 @@ class LEAPfactory(tornado.web.RequestHandler):
             logging.warning('App already closed in destroy()')
         status = self.get_status_dict()
         status['state'] = 'stopped'
-        status['link'] = ''
         status['browser'] = None
 
         self.set_app_status(status)
@@ -155,7 +150,6 @@ class LEAPfactory(tornado.web.RequestHandler):
             # app crashed or closed
             status = self.get_status_dict()
             status['state'] = 'stopped'
-            status['link'] = ''
             status['browser'] = None
             self.set_app_status(status)
 

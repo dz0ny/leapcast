@@ -28,7 +28,7 @@ def parse_cmd():
     parser.add_argument('--chrome', help='Path to Google Chrome executable')
     parser.add_argument('--fullscreen', action='store_true',
                         default=False, help='Start in full-screen mode')
-    parser.add_argument('--window_size', 
+    parser.add_argument('--window_size',
                         default=False, help='Set the initial chrome window size. eg 1920,1080')
     args = parser.parse_args()
 
