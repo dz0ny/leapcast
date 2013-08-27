@@ -6,7 +6,6 @@ import json
 import logging
 from leapcast.environment import Environment
 import tornado.web
-import copy
 import threading
 
 
@@ -35,15 +34,6 @@ class App(object):
             Environment.channels[app] = instance
             return instance
 
-    @classmethod
-    def stop(cls, app):
-
-        if app.name in Environment.channels:
-            del Environment.channels[app.name]
-            status = copy.deepcopy(cls.application_status)
-            status['name'] = app.name
-            Environment.global_status[app.name] = status
-
     def set_control_channel(self, ch):
 
         logging.info("Channel for app %s set", ch)
@@ -58,9 +48,6 @@ class App(object):
 
     def get_apps_count(self):
         return len(self.remotes)
-
-    def get_recv_count(self):
-        return len(self.receivers)
 
     def add_remote(self, remote):
         self.remotes.append(remote)
@@ -82,19 +69,34 @@ class App(object):
         try:
             return self.remotes[self.receivers.index(receiver)]
         except Exception:
-            return None
+            return False
 
     def get_recv_channel(self, app):
         try:
             return self.receivers[self.remotes.index(app)]
         except Exception:
-            return None
+            return False
 
     def create_application_channel(self, data):
         if self.get_control_channel():
             self.get_control_channel().new_request()
         else:
             CreateChannel(self.name, data, self.lock).start()
+
+    def stop(self):
+        for ws in self.remotes:
+            try:
+                ws.close()
+            except Exception:
+                pass
+        for ws in self.receivers:
+            try:
+                ws.close()
+            except Exception:
+                pass
+        app = Environment.global_status.get(self.name, False)
+        if app:
+            app.stop_app()
 
 
 class CreateChannel (threading.Thread):
@@ -124,7 +126,6 @@ class ServiceChannel(tornado.websocket.WebSocketHandler):
 
     def on_message(self, message):
         cmd = json.loads(message)
-        print cmd
         if cmd["type"] == "REGISTER":
             self.app.lock.set()
             self.app.info = cmd
@@ -148,7 +149,6 @@ class ServiceChannel(tornado.websocket.WebSocketHandler):
 
     def new_request(self, data=None):
         logging.info("CHANNELREQUEST for app %s" % (self.app.info["name"]))
-        print data
         if data:
             try:
                 data = json.loads(data)
@@ -167,7 +167,7 @@ class ServiceChannel(tornado.websocket.WebSocketHandler):
         )
 
     def on_close(self):
-        App.stop(self.app)
+        self.app.stop()
 
 
 class WSC(tornado.websocket.WebSocketHandler):
@@ -187,6 +187,8 @@ class WSC(tornado.websocket.WebSocketHandler):
             logging.debug("%s: %s" % (self.cname, message))
 
     def on_close(self):
+        if self.app.name in Environment.channels:
+            del Environment.channels[self.app.name]
         logging.info("%s closed %s" %
                      (self.cname, self.request.uri))
 
@@ -214,7 +216,6 @@ class ReceiverChannel(WSC):
 
     def on_close(self):
         self.app.receivers.remove(self)
-        super(ReceiverChannel, self).on_close()
 
 
 class ApplicationChannel(WSC):
@@ -239,7 +240,6 @@ class ApplicationChannel(WSC):
 
     def on_close(self):
         self.app.remotes.remove(self)
-        super(ApplicationChannel, self).on_close()
 
 
 class CastPlatform(tornado.websocket.WebSocketHandler):

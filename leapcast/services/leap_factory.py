@@ -165,7 +165,6 @@ class LEAPfactory(tornado.web.RequestHandler):
         return 'http://%s/apps/%s/web-1' % (self.ip, app)
 
     def _toXML(self, data):
-        print render(self.service)
         return render(self.service).generate(**data)
 
     @classmethod
