@@ -1,3 +1,4 @@
+box: wercker/python@0.0.6
 deploy:
     steps:
         - script:
