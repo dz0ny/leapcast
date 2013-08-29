@@ -36,10 +36,10 @@ setup(
         'Development Status :: 4 - Beta',
         'Environment :: No Input/Output (Daemon)',
         'Intended Audience :: End Users/Desktop',
-        'License :: OSI Approved :: MIT Software License',
+        'License :: OSI Approved :: MIT License',
         'Operating System :: MacOS :: MacOS X',
         'Operating System :: POSIX :: Linux',
         'Programming Language :: Python :: 2.7',
-        'Topic :: Multimedia :: Sound/Audio :: Players',
+        'Topic :: Multimedia',
     ],
 )
