@@ -12,8 +12,13 @@ Working:
  - TicTacToe
  - ChromeCast
 
-On real device enabled apps are fetched from https://clients3.google.com/cast/chromecast/device/config
+On real device enabled apps are fetched from https://clients3.google.com/cast/chromecast/device/config .
+Bugs in ChromeCast SDK are listed at https://code.google.com/p/google-cast-sdk/issues/list?can=2&q=&sort=priority&colspec=ID%20Type%20Status%20Priority%20Milestone%20Owner%20Summary 
 
+Some known bugs in ChromeCast SDK:
+ 
+ - Discovery fails on some devices with multiple unactive network interfaces 
+ - Scanning crashes device or app with ConcurrentModificationException 
 
 ## How to install
 
