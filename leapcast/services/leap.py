@@ -5,44 +5,39 @@ import tornado.web
 import tornado.websocket
 import logging
 from leapcast.apps.default import *
-from leapcast.services.rest import *
-from leapcast.services.websocket import *
+from leapcast.services.dial import DeviceHandler, ChannelFactory
+from leapcast.services.websocket import ServiceChannel, ReceiverChannel, ApplicationChannel, CastPlatform
+from leapcast.services.leap_factory import LEAPfactory
 
 
 class LEAPserver(object):
 
     def start(self):
         logging.info('Starting LEAP server')
-        self.application = tornado.web.Application([
+        routes = [
             (r"/ssdp/device-desc.xml", DeviceHandler),
             (r"/apps", DeviceHandler),
-
-            self.register_app(ChromeCast),
-            self.register_app(YouTube),
-            self.register_app(PlayMovies),
-            self.register_app(GoogleMusic),
-            self.register_app(GoogleCastSampleApp),
-            self.register_app(GoogleCastPlayer),
-            self.register_app(TicTacToe),
-            self.register_app(Fling),
-
             (r"/connection", ServiceChannel),
             (r"/connection/([^\/]+)", ChannelFactory),
             (r"/receiver/([^\/]+)", ReceiverChannel),
             (r"/session/([^\/]+)", ApplicationChannel),
             (r"/system/control", CastPlatform),
-        ])
+        ]
+
+        #add registread apps
+        for app in LEAPfactory.get_subclasses():
+            name = app.__name__
+            logging.info('Added %s app' % name)
+            routes.append((
+                r"(/apps/" + name + "|/apps/" + name + ".*)", app))
+
+        self.application = tornado.web.Application(routes)
         self.application.listen(8008)
         tornado.ioloop.IOLoop.instance().start()
 
     def shutdown(self, ):
         logging.info('Stopping DIAL server')
         tornado.ioloop.IOLoop.instance().stop()
-
-    def register_app(self, app):
-        name = app.__name__
-        logging.debug('Added %s app' % name)
-        return (r"(/apps/" + name + "|/apps/" + name + ".*)", app)
 
     def sig_handler(self, sig, frame):
         tornado.ioloop.IOLoop.instance().add_callback(self.shutdown)

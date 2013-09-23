@@ -81,6 +81,11 @@ class LEAPfactory(tornado.web.RequestHandler):
     url = '{{query}}'
     supported_protocols = ['ramp']
 
+    @classmethod
+    def get_subclasses(c):
+        subclasses = c.__subclasses__()
+        return list(subclasses)
+
     def get_name(self):
         return self.__class__.__name__
 
