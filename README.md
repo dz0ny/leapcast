@@ -55,3 +55,7 @@ optional arguments:
   --window_size         Force the initial window size (eg 1920,1080)
 
 ```
+
+
+[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/dz0ny/leapcast/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
+
