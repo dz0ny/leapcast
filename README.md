@@ -57,5 +57,5 @@ optional arguments:
 ```
 
 
-[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/dz0ny/leapcast/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
+[![Bitdeli Badge](http://piwik-ubuntusi.rhcloud.com/piwik.php?idsite=2&amp;rec=1)](https://bitdeli.com/free "Bitdeli Badge")
 
