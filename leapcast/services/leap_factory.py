@@ -19,7 +19,7 @@ class Browser(object):
     def __init__(self, appurl):
         if not Environment.fullscreen:
             appurl = '--app="%s"' % appurl
-        command_line = '''--ignore-gpu-blacklist --incognito --no-first-run --kiosk --user-agent="%s"  %s''' % (
+        command_line = '''--no-default-browser-check --ignore-gpu-blacklist --incognito --no-first-run --kiosk --user-agent="%s"  %s''' % (
             Environment.user_agent, appurl)
         args = [Environment.chrome]
         args.extend(shlex.split(command_line.encode('utf8')))
