@@ -7,10 +7,10 @@ Simple ChromeCast emulation app.
 Working:
 
  - Discovery (DIAL protocol http://www.dial-multiscreen.org/)
- - Youtube
- - Google Music
- - TicTacToe
- - ChromeCast
+ - Youtube (with https://play.google.com/store/apps/details?id=com.google.android.youtube)
+ - Google Music (with https://play.google.com/store/apps/details?id=com.google.android.music)
+ - HBO GO (with https://play.google.com/store/apps/details?id=com.HBO)
+ - Hulu Plus (with https://play.google.com/store/apps/details?id=com.hulu.plus)
 
 On real device enabled apps are fetched from https://clients3.google.com/cast/chromecast/device/config .
 Bugs in ChromeCast SDK are listed at https://code.google.com/p/google-cast-sdk/issues/list?can=2&q=&sort=priority&colspec=ID%20Type%20Status%20Priority%20Milestone%20Owner%20Summary 
