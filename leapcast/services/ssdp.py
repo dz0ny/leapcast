@@ -31,7 +31,7 @@ class MulticastServer(ControlMixin, ThreadingUDPServer):
         self.socket.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_LOOP,
                                mode)
 
-    def handle_membership(self, cmd):
+    def server_bind(self):
         try:
             if hasattr(socket, "SO_REUSEADDR"):
                 self.socket.setsockopt(
@@ -44,7 +44,9 @@ class MulticastServer(ControlMixin, ThreadingUDPServer):
                     socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
         except Exception as e:
             logging.log(e)
+        ThreadingUDPServer.server_bind(self)
 
+    def handle_membership(self, cmd):
         if self._listen_interfaces is None:
             mreq = struct.pack(
                 str("4sI"), socket.inet_aton(self._multicast_address[0]),

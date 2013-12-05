@@ -1,0 +1,14 @@
+language: python
+python:
+- '2.7'
+install: pip install flake8 -r requirements.txt
+script:
+- make test
+deploy:
+  provider: pypi
+  user: janez.troha
+  password:
+    secure: efknTHUuHpc4UPcy2u90pBWuEFMiX1I209wa5ZQbr1A0B9VPcwTxi4kvnfqqOV/PBGT58Hkx1/hltZ/ORBufEWUKQWzBxtPXdPfcHVXu4wdWrZycLXt6mKhynPW/qDKlPEUv3yUTPFlH8e2kp3eSyuWI4K/yaZ050f2hvjzX78Y=
+  on:
+    tags: true
+    repo: dz0ny/leapcast
