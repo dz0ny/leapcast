@@ -23,7 +23,7 @@ def get_requirements(filename='requirements.txt'):
 
 data = read_from(get_path('leapcast', '__init__.py'))
 version = re.search(u"__version__\s*=\s*u?'([^']+)'", data).group(1).strip()
-readme = read_from(get_path('README.md'))
+readme = read_from(get_path('README.rst'))
 
 setup(
     name='Leapcast',
@@ -38,6 +38,7 @@ setup(
     include_package_data=True,
     long_description=readme,
     install_requires=get_requirements(),
+    test_suite='nose.collector',
     entry_points={
         'console_scripts': [
             'leapcast = leapcast.__main__:main'
