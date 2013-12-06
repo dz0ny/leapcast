@@ -1,32 +1,43 @@
-from __future__ import unicode_literals
-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+b'This library requires pypy or Python 2.6, 2.7, 3.3, pypy or newer'
+import io
+import os
 import re
-
 from setuptools import setup, find_packages
 
 
-def get_version(filename):
-    init_py = open(filename).read()
-    metadata = dict(re.findall("__([a-z]+)__ = '([^']+)'", init_py))
-    return metadata['version']
+def get_path(*args):
+    return os.path.join(os.path.dirname(__file__), *args)
 
+
+def read_from(filepath):
+    with io.open(filepath, 'rt', encoding='utf8') as f:
+        return f.read()
+
+
+def get_requirements(filename='requirements.txt'):
+    data = read_from(get_path(filename))
+    lines = map(lambda s: s.strip(), data.splitlines())
+    return [l for l in lines if l and not l.startswith('#')]
+
+data = read_from(get_path('wp_tool', '__init__.py'))
+version = re.search(u"__version__\s*=\s*u?'([^']+)'", data).group(1).strip()
+readme = read_from(get_path('README.md'))
 
 setup(
     name='Leapcast',
-    version=get_version('leapcast/__init__.py'),
+    version=version,
     url='http://www.mopidy.com/',
     license='MIT',
     author='Janez Troha',
     author_email='janez.troha@gmail.com',
     description='ChromeCast functionality for any device',
-    long_description=open('README.md').read(),
     packages=find_packages(exclude=['tests', 'tests.*']),
     zip_safe=False,
     include_package_data=True,
-    install_requires=[
-        'setuptools',
-        'tornado',
-    ],
+    long_description=readme,
+    install_requires=get_requirements(),
     entry_points={
         'console_scripts': [
             'leapcast = leapcast.__main__:main'

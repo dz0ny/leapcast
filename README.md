@@ -24,7 +24,7 @@ Some known bugs in ChromeCast SDK:
 
 ### Simple
 
-Clone this directory, then run ```python setup.py develop``` or ```pip install https://github.com/dz0ny/leapcast/archive/master.zip```
+Clone this directory, then run ```python setup.py develop``` or ```pip install leapcast``
 
 ### Better
 
