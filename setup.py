@@ -21,7 +21,7 @@ def get_requirements(filename='requirements.txt'):
     lines = map(lambda s: s.strip(), data.splitlines())
     return [l for l in lines if l and not l.startswith('#')]
 
-data = read_from(get_path('wp_tool', '__init__.py'))
+data = read_from(get_path('leapcast', '__init__.py'))
 version = re.search(u"__version__\s*=\s*u?'([^']+)'", data).group(1).strip()
 readme = read_from(get_path('README.md'))
 
