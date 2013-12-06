@@ -23,6 +23,7 @@ test:
 	flake8 leapcast --ignore=E501,F403
 
 release: clean
+	pandoc --from=markdown --to=rst --output=README.rst README.md
 	python setup.py sdist upload
 
 sdist: clean
