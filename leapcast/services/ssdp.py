@@ -1,6 +1,7 @@
 # -*- coding: utf8 -*-
 
 from __future__ import unicode_literals
+import contextlib
 import socket
 from leapcast.utils import render
 from leapcast.environment import Environment
@@ -11,17 +12,24 @@ from leapcast.utils import ControlMixin
 from SocketServer import ThreadingUDPServer, DatagramRequestHandler
 
 
+def GetInterfaceAddress(if_name):
+    import fcntl  # late import as this is only supported on Unix platforms.
+    SIOCGIFADDR = 0x8915
+    with contextlib.closing(socket.socket(socket.AF_INET, socket.SOCK_DGRAM)) as s:
+        return fcntl.ioctl(s.fileno(), SIOCGIFADDR, struct.pack(b'256s', if_name[:15]))[20:24]
+
+
 class MulticastServer(ControlMixin, ThreadingUDPServer):
 
     allow_reuse_address = True
 
-    def __init__(self, addr, handler, poll_interval=0.5, bind_and_activate=True, iface=None):
+    def __init__(self, addr, handler, poll_interval=0.5, bind_and_activate=True, interfaces=None):
         ThreadingUDPServer.__init__(self, ('', addr[1]),
                                     handler,
                                     bind_and_activate)
         ControlMixin.__init__(self, handler, poll_interval)
         self._multicast_address = addr
-        self._listen_interfaces = iface
+        self._listen_interfaces = interfaces
         self.setLoopbackMode(1)  # localhost
         self.setTTL(2)  # localhost and local network
         self.handle_membership(socket.IP_ADD_MEMBERSHIP)
@@ -55,8 +63,11 @@ class MulticastServer(ControlMixin, ThreadingUDPServer):
                                    cmd, mreq)
         else:
             for interface in self._listen_interfaces:
-                mreq = socket.inet_aton(
-                    self._multicast_address[0]) + socket.inet_aton(interface)
+                try:
+                    if_addr = socket.inet_aton(interface)
+                except socket.error:
+                    if_addr = GetInterfaceAddress(interface)
+                mreq = socket.inet_aton(self._multicast_address[0]) + if_addr
                 self.socket.setsockopt(socket.IPPROTO_IP,
                                        cmd, mreq)
 
@@ -111,10 +122,10 @@ class SSDPserver(object):
     SSDP_ADDR = '239.255.255.250'
     SSDP_PORT = 1900
 
-    def start(self):
+    def start(self, interfaces):
         logging.info('Starting SSDP server')
         self.server = MulticastServer(
-            (self.SSDP_ADDR, self.SSDP_PORT), SSDPHandler)
+            (self.SSDP_ADDR, self.SSDP_PORT), SSDPHandler, interfaces=interfaces)
         self.server.start()
 
     def shutdown(self):

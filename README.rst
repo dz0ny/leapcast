@@ -72,12 +72,14 @@ https://plus.google.com/100317092290545434762/posts/8RjWfMXxje8
 
 ::
 
-    usage: leapcast [-h] [-d] [--name NAME] [--user_agent USER_AGENT]
-                    [--chrome CHROME] [--fullscreen]
+    usage: leapcast [-h] [-d] [-i IPADDRESS] [--name NAME]
+                    [--user_agent USER_AGENT] [--chrome CHROME] [--fullscreen]
 
     optional arguments:
       -h, --help            show this help message and exit
       -d                    Debug
+      -i IPADDRESS, --interface IPADDRESS
+                            Interface to bind to (can be specified multiple times)
       --name NAME           Friendly name for this device
       --user_agent USER_AGENT
                             Custom user agent
