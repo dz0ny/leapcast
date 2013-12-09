@@ -26,6 +26,7 @@ setup(
     install_requires=[
         'setuptools',
         'tornado',
+        'requests'
     ],
     entry_points={
         'console_scripts': [

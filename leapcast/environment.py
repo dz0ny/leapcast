@@ -16,6 +16,7 @@ class Environment(object):
     window_size = False
     interface = None
     uuid = None
+    ips = []
     verbosity = logging.INFO
 
 
@@ -30,6 +31,7 @@ def parse_cmd():
                         default=False, help='Start in full-screen mode')
     parser.add_argument('--window_size',
                         default=False, help='Set the initial chrome window size. eg 1920,1080')
+    parser.add_argument('--ips', help='Allowed ips')
     args = parser.parse_args()
 
     if args.name:
@@ -49,6 +51,9 @@ def parse_cmd():
 
     if args.window_size:
         Environment.window_size = args.window_size
+
+    if args.ips:
+        Environment.ips = args.ips
 
     if args.d:
         Environment.verbosity = logging.DEBUG

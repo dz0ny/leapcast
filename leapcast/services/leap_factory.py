@@ -122,7 +122,10 @@ class LEAPfactory(tornado.web.RequestHandler):
         status = self.get_app_status()
         if status['browser'] is None:
             status['state'] = 'running'
-            appurl = render(self.url).generate(query=self.request.body)
+            if self.url == "https://tv.pandora.com/cast?{{ query }}":
+                appurl = render(self.url.replace("{{ query }}", self.request.body)).generate(query=self.request.body)
+            else:
+                appurl = render(self.url).generate(query=self.request.body)
             status['browser'] = Browser(appurl)
             status['connectionSvcURL'] = 'http://%s/connection/%s' % (
                 self.ip, self.get_name())
