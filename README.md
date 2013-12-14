@@ -68,7 +68,7 @@ usage: leapcast [-h] [-d] [-i IPADDRESS] [--name NAME]
 
 optional arguments:
   -h, --help            show this help message and exit
-  -d                    Debug
+  -d, --debug           Debug
   -i IPADDRESS, --interface IPADDRESS
                         Interface to bind to (can be specified multiple times)
   --name NAME           Friendly name for this device
