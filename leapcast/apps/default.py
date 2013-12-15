@@ -31,6 +31,9 @@ class GoogleCastPlayer(LEAPfactory):
 class Fling(LEAPfactory):
     url = "{{ query }}"
 
+class Pandora_App(LEAPfactory):
+    url = "https://tv.pandora.com/cast?{{ query }}"
+
 
 class TicTacToe(LEAPfactory):
     url = "http://www.gstatic.com/eureka/sample/tictactoe/tictactoe.html"

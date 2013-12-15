@@ -7,6 +7,7 @@ import logging
 from leapcast.environment import Environment
 import tornado.web
 import threading
+from __builtin__ import id
 
 
 class App(object):
@@ -19,6 +20,7 @@ class App(object):
     remotes = list()
     receivers = list()
     rec_queue = list()
+    buf = {} # Buffers if the channel are not ready
     control_channel = list()
     senderid = False
     info = None
@@ -35,14 +37,13 @@ class App(object):
             return instance
 
     def set_control_channel(self, ch):
-
-        logging.info("Channel for app %s set", ch)
+        logging.info("Channel for app set to %s", ch)
         self.control_channel.append(ch)
 
     def get_control_channel(self):
         try:
-            logging.info("Channel for app %s is", self.control_channel[0])
-            return self.control_channel[0]
+            logging.info("Channel for app is %s", self.control_channel[-1])
+            return self.control_channel[-1]
         except Exception:
             return False
 
@@ -54,16 +55,21 @@ class App(object):
 
     def add_receiver(self, receiver):
         self.receivers.append(receiver)
-        self.rec_queue.append(deque())
+        if id(receiver) in self.buf:
+            self.rec_queue.append(self.buf[id(receiver)])
+        else:
+            self.rec_queue.append(deque())
 
     def get_deque(self, instance):
         try:
-            id = self.receivers.index(instance)
-            return self.rec_queue[id]
+            _id = self.receivers.index(instance)
+            return self.rec_queue[_id]
         except Exception:
-            queue = deque()
-            self.rec_queue.append(queue)
-            return queue
+            if id(instance) in self.buf:
+                return self.buf[id(instance)]
+            else:
+                self.buf[id(instance)] = deque()
+                return self.buf[id(instance)]
 
     def get_app_channel(self, receiver):
         try:
@@ -71,8 +77,22 @@ class App(object):
         except Exception:
             return False
 
+    def get_self_app_channel(self, app):
+        try:
+            if type(self.remotes[self.remotes.index(app)].ws_connection) == type(None):
+                return False
+            return self.remotes[self.remotes.index(app)]
+        except Exception:
+            return False
+
     def get_recv_channel(self, app):
         try:
+            """
+            if type(self.receivers[self.remotes.index(app)].ws_connection) != type(None):
+                return self.receivers[self.remotes.index(app)]
+            """
+            if type(self.receivers[self.remotes.index(app)].ws_connection) == type(None):
+                return False
             return self.receivers[self.remotes.index(app)]
         except Exception:
             return False
@@ -89,14 +109,18 @@ class App(object):
                 ws.close()
             except Exception:
                 pass
+        self.remotes = list()
         for ws in self.receivers:
             try:
                 ws.close()
             except Exception:
                 pass
+        self.receivers = list()
+        self.control_channel.pop()
         app = Environment.global_status.get(self.name, False)
         if app:
             app.stop_app()
+        self.buf = {}
 
 
 class CreateChannel (threading.Thread):
@@ -108,7 +132,9 @@ class CreateChannel (threading.Thread):
         self.lock = lock
 
     def run(self):
-        self.lock.wait(30)
+        #self.lock.wait(30)
+        self.lock.clear()
+        self.lock.wait()
         App.get_instance(
             self.name).get_control_channel().new_request(self.data)
 
@@ -119,21 +145,28 @@ class ServiceChannel(tornado.websocket.WebSocketHandler):
     ws /connection
     From 1st screen app
     '''
+    buf = list()
 
     def open(self, app=None):
         self.app = App.get_instance(app)
         self.app.set_control_channel(self)
+        while len(self.buf) > 0:
+            self.reply(self.buf.pop())
 
     def on_message(self, message):
         cmd = json.loads(message)
         if cmd["type"] == "REGISTER":
             self.app.lock.set()
             self.app.info = cmd
+            
         if cmd["type"] == "CHANNELRESPONSE":
             self.new_channel()
 
     def reply(self, msg):
-        self.write_message((json.dumps(msg)))
+        if type(self.ws_connection) == type(None):
+            self.buf.append(msg)
+        else:
+            self.write_message((json.dumps(msg)))
 
     def new_channel(self):
         logging.info("NEWCHANNEL for app %s" % (self.app.info["name"]))
@@ -203,43 +236,84 @@ class ReceiverChannel(WSC):
     def open(self, app=None):
         super(ReceiverChannel, self).open(app)
         self.app.add_receiver(self)
+
         queue = self.app.get_deque(self)
-        if len(queue) > 0:
-            for i in xrange(0, len(queue)):
-                self.write_message(queue.pop())
+        while len(queue) > 0:
+            self.on_message(queue.pop())
 
     def on_message(self, message):
-        super(ReceiverChannel, self).on_message(message)
         channel = self.app.get_app_channel(self)
         if channel:
-            channel.write_message(message)
+            queue = self.app.get_deque(self)
+            while len(queue) > 0:
+                self.on_message(queue.pop())
 
-    def on_close(self):
-        self.app.receivers.remove(self)
-
-
-class ApplicationChannel(WSC):
-
-    '''
-    ws /session/$app
-    From 2nd screen app
-    '''
-
-    def open(self, app=None):
-        super(ApplicationChannel, self).open(app)
-        self.app.add_remote(self)
-
-    def on_message(self, message):
-        super(ApplicationChannel, self).on_message(message)
-        channel = self.app.get_recv_channel(self)
-        if channel:
+            super(ReceiverChannel, self).on_message(message)
             channel.write_message(message)
         else:
             queue = self.app.get_deque(self)
             queue.append(message)
 
+
+
     def on_close(self):
-        self.app.remotes.remove(self)
+        channel = self.app.get_app_channel(self)
+        try:
+            self.app.receivers.remove(self)
+        except:
+            pass
+
+        if channel:
+            channel.on_close()
+
+
+class ApplicationChannel(WSC):
+    '''
+    ws /session/$app
+    From 2nd screen app
+    '''
+
+    def ping(self):
+        queue = self.app.get_deque(self)
+
+        channel = self.app.get_self_app_channel(self)
+        if channel:
+            data = json.dumps(["cm",{"type":"ping"}])
+            channel.write_message(data)
+            #TODO Magic number -- Not sure what the interval should be, the value of `pingInterval` is 0.
+            threading.Timer(5, self.ping).start()
+
+    def open(self, app=None):
+        super(ApplicationChannel, self).open(app)
+        self.app.add_remote(self)
+        queue = self.app.get_deque(self)
+
+        self.ping()
+
+
+    def on_message(self, message):
+        channel = self.app.get_recv_channel(self)
+        if channel:
+            queue = self.app.get_deque(self)
+            while len(queue) > 0:
+                self.on_message(queue.pop())
+
+            super(ApplicationChannel, self).on_message(message)
+            channel.write_message(message)
+        else:
+            queue = self.app.get_deque(self)
+            queue.append(message)
+
+
+    def on_close(self):
+        channel = self.app.get_recv_channel(self)
+        try:
+            self.app.remotes.remove(self)
+        except:
+            pass
+
+        if channel:
+            channel.on_close()
 
 
 class CastPlatform(tornado.websocket.WebSocketHandler):

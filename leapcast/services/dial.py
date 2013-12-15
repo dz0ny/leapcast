@@ -4,6 +4,7 @@ from leapcast.environment import Environment
 from leapcast.services.websocket import App
 from leapcast.utils import render
 import tornado.web
+import logging
 
 
 class DeviceHandler(tornado.web.RequestHandler):
@@ -38,27 +39,29 @@ class DeviceHandler(tornado.web.RequestHandler):
     </root>'''
 
     def get(self):
-        if self.request.uri == "/apps":
-            for app, astatus in Environment.global_status.items():
-                if astatus["state"] == "running":
-                    self.redirect("/apps/%s" % app)
-            self.set_status(204)
-            self.set_header(
-                "Access-Control-Allow-Method", "GET, POST, DELETE, OPTIONS")
-            self.set_header("Access-Control-Expose-Headers", "Location")
+        if ((len(Environment.ips) == 0) | (self.request.remote_ip in Environment.ips)):
+            if self.request.uri == "/apps":
+                for app, astatus in Environment.global_status.items():
+                    if astatus["state"] == "running":
+                        self.redirect("/apps/%s" % app)
+                self.set_status(204)
+                self.set_header(
+                    "Access-Control-Allow-Method", "GET, POST, DELETE, OPTIONS")
+                self.set_header("Access-Control-Expose-Headers", "Location")
+            else:
+                self.set_header(
+                    "Access-Control-Allow-Method", "GET, POST, DELETE, OPTIONS")
+                self.set_header("Access-Control-Expose-Headers", "Location")
+                self.add_header(
+                    "Application-URL", "http://%s/apps" % self.request.host)
+                self.set_header("Content-Type", "application/xml")
+                self.write(render(self.device).generate(
+                    friendlyName=Environment.friendlyName,
+                    uuid=Environment.uuid,
+                    path="http://%s" % self.request.host)
+                )
         else:
-            self.set_header(
-                "Access-Control-Allow-Method", "GET, POST, DELETE, OPTIONS")
-            self.set_header("Access-Control-Expose-Headers", "Location")
-            self.add_header(
-                "Application-URL", "http://%s/apps" % self.request.host)
-            self.set_header("Content-Type", "application/xml")
-            self.write(render(self.device).generate(
-                friendlyName=Environment.friendlyName,
-                uuid=Environment.uuid,
-                path="http://%s" % self.request.host)
-            )
-
+            tornado.web.HTTPError(404)
 
 class ChannelFactory(tornado.web.RequestHandler):
 
