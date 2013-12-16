@@ -27,6 +27,22 @@ Some known bugs in ChromeCast SDK:
    interfaces
 -  Scanning crashes device or app with ConcurrentModificationException
 
+Authors
+-------
+
+The following persons have contributed to leapcast.
+
+-  Janez Troha
+-  Tyler Hall
+-  Edward Shaw
+-  Jan Henrik
+-  Martin Polden
+-  Thomas Taschauer
+-  Zenobius Jiricek
+-  Ernes Durakovic
+-  Peter Sanford
+-  Michel Tu
+
 How to install
 --------------
 

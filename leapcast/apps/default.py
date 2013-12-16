@@ -31,6 +31,7 @@ class GoogleCastPlayer(LEAPfactory):
 class Fling(LEAPfactory):
     url = "{{ query }}"
 
+
 class Pandora_App(LEAPfactory):
     url = "https://tv.pandora.com/cast?{{ query }}"
 

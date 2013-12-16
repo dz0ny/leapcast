@@ -20,7 +20,7 @@ class App(object):
     remotes = list()
     receivers = list()
     rec_queue = list()
-    buf = {} # Buffers if the channel are not ready
+    buf = {}  # Buffers if the channel are not ready
     control_channel = list()
     senderid = False
     info = None
@@ -79,7 +79,7 @@ class App(object):
 
     def get_self_app_channel(self, app):
         try:
-            if type(self.remotes[self.remotes.index(app)].ws_connection) == type(None):
+            if isinstance(self.remotes[self.remotes.index(app)].ws_connection, type(None)):
                 return False
             return self.remotes[self.remotes.index(app)]
         except Exception:
@@ -91,7 +91,7 @@ class App(object):
             if type(self.receivers[self.remotes.index(app)].ws_connection) != type(None):
                 return self.receivers[self.remotes.index(app)]
             """
-            if type(self.receivers[self.remotes.index(app)].ws_connection) == type(None):
+            if isinstance(self.receivers[self.remotes.index(app)].ws_connection, type(None)):
                 return False
             return self.receivers[self.remotes.index(app)]
         except Exception:
@@ -132,7 +132,7 @@ class CreateChannel (threading.Thread):
         self.lock = lock
 
     def run(self):
-        #self.lock.wait(30)
+        # self.lock.wait(30)
         self.lock.clear()
         self.lock.wait()
         App.get_instance(
@@ -158,12 +158,12 @@ class ServiceChannel(tornado.websocket.WebSocketHandler):
         if cmd["type"] == "REGISTER":
             self.app.lock.set()
             self.app.info = cmd
-            
+
         if cmd["type"] == "CHANNELRESPONSE":
             self.new_channel()
 
     def reply(self, msg):
-        if type(self.ws_connection) == type(None):
+        if isinstance(self.ws_connection, type(None)):
             self.buf.append(msg)
         else:
             self.write_message((json.dumps(msg)))
@@ -254,8 +254,6 @@ class ReceiverChannel(WSC):
             queue = self.app.get_deque(self)
             queue.append(message)
 
-
-
     def on_close(self):
         channel = self.app.get_app_channel(self)
         try:
@@ -268,28 +266,29 @@ class ReceiverChannel(WSC):
 
 
 class ApplicationChannel(WSC):
+
     '''
     ws /session/$app
     From 2nd screen app
     '''
 
     def ping(self):
-        queue = self.app.get_deque(self)
+        self.app.get_deque(self)
 
         channel = self.app.get_self_app_channel(self)
         if channel:
-            data = json.dumps(["cm",{"type":"ping"}])
+            data = json.dumps(["cm", {"type": "ping"}])
             channel.write_message(data)
-            #TODO Magic number -- Not sure what the interval should be, the value of `pingInterval` is 0.
+            # TODO Magic number -- Not sure what the interval should be, the
+            # value of `pingInterval` is 0.
             threading.Timer(5, self.ping).start()
 
     def open(self, app=None):
         super(ApplicationChannel, self).open(app)
         self.app.add_remote(self)
-        queue = self.app.get_deque(self)
+        self.app.get_deque(self)
 
         self.ping()
-
 
     def on_message(self, message):
         channel = self.app.get_recv_channel(self)
@@ -303,7 +302,6 @@ class ApplicationChannel(WSC):
         else:
             queue = self.app.get_deque(self)
             queue.append(message)
-
 
     def on_close(self):
         channel = self.app.get_recv_channel(self)

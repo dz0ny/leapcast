@@ -21,6 +21,21 @@ Some known bugs in ChromeCast SDK:
  - Discovery fails on some devices with multiple unactive network interfaces 
  - Scanning crashes device or app with ConcurrentModificationException 
 
+## Authors
+
+The following persons have contributed to leapcast.
+
+ - Janez Troha
+ - Tyler Hall
+ - Edward Shaw
+ - Jan Henrik
+ - Martin Polden
+ - Thomas Taschauer
+ - Zenobius Jiricek
+ - Ernes Durakovic
+ - Peter Sanford
+ - Michel Tu
+
 ## How to install
 
 ### Simple

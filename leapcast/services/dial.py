@@ -4,7 +4,6 @@ from leapcast.environment import Environment
 from leapcast.services.websocket import App
 from leapcast.utils import render
 import tornado.web
-import logging
 
 
 class DeviceHandler(tornado.web.RequestHandler):
@@ -62,6 +61,7 @@ class DeviceHandler(tornado.web.RequestHandler):
                 )
         else:
             tornado.web.HTTPError(404)
+
 
 class ChannelFactory(tornado.web.RequestHandler):
 
