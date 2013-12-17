@@ -12,7 +12,9 @@ Working:
  - Google Music (with https://play.google.com/store/apps/details?id=com.google.android.music)
  - HBO GO (with https://play.google.com/store/apps/details?id=com.HBO)
  - Hulu Plus (with https://play.google.com/store/apps/details?id=com.hulu.plus)
-
+ - Pandora (with https://play.google.com/store/apps/details?id=com.pandora.android )
+ - RedBull TV (with https://play.google.com/store/apps/details?id=com.nousguide.android.rbtv)
+ - Others (see http://en.wikipedia.org/wiki/Chromecast#Chrome_and_mobile_apps)
 On real device enabled apps are fetched from https://clients3.google.com/cast/chromecast/device/config .
 Bugs in ChromeCast SDK are listed at https://code.google.com/p/google-cast-sdk/issues/list?can=2&q=&sort=priority&colspec=ID%20Type%20Status%20Priority%20Milestone%20Owner%20Summary 
 
