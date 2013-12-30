@@ -72,6 +72,7 @@ optional arguments:
   --chrome CHROME       Path to Google Chrome executable
   --fullscreen          Start in full-screen mode
   --window_size         Force the initial window size (eg 1920,1080)
+  --imports NAMES       Colon separated list of Python files to import at runtime, possibly defining additional apps
 
 ```
 

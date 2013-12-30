@@ -17,6 +17,7 @@ class Environment(object):
     interface = None
     uuid = None
     ips = []
+    imports = []
     verbosity = logging.INFO
 
 
@@ -32,6 +33,7 @@ def parse_cmd():
     parser.add_argument('--window_size',
                         default=False, help='Set the initial chrome window size. eg 1920,1080')
     parser.add_argument('--ips', help='Allowed ips')
+    parser.add_argument('--imports', help='Extra app files to be  imported')
     args = parser.parse_args()
 
     if args.name:
@@ -54,6 +56,9 @@ def parse_cmd():
 
     if args.ips:
         Environment.ips = args.ips
+
+    if args.imports:
+        Environment.imports = args.imports
 
     if args.d:
         Environment.verbosity = logging.DEBUG

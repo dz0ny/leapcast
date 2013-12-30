@@ -10,6 +10,7 @@ from leapcast.apps.default import *
 from leapcast.services.dial import DeviceHandler, ChannelFactory
 from leapcast.services.websocket import ServiceChannel, ReceiverChannel, ApplicationChannel, CastPlatform
 from leapcast.services.leap_factory import LEAPfactory
+from leapcast.environment import Environment
 
 
 class LEAPserver(object):
@@ -52,6 +53,11 @@ class LEAPserver(object):
             clazz = type((name), (LEAPfactory,), {"url": url})
             routes.append(("(/apps/" + name + "|/apps/" + name + ".*)", clazz))
             added_apps.append(name)
+
+        # possibly add user defined app classes
+        if Environment.imports:
+            for tmp in Environment.imports.split(':'):
+                exec('from %s import *' % tmp)
 
         # add registread apps
         for app in LEAPfactory.get_subclasses():
