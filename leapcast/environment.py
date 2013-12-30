@@ -17,7 +17,7 @@ class Environment(object):
     interface = None
     uuid = None
     ips = []
-    imports = []
+    imports = None
     verbosity = logging.INFO
 
 
