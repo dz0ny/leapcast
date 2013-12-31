@@ -33,7 +33,7 @@ def parse_cmd():
     parser.add_argument('--window_size',
                         default=False, help='Set the initial chrome window size. eg 1920,1080')
     parser.add_argument('--ips', help='Allowed ips')
-    parser.add_argument('--imports', help='Extra app files to be  imported')
+    parser.add_argument('--imports', help='Extra app files to be imported')
     args = parser.parse_args()
 
     if args.name:
