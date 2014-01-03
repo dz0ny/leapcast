@@ -1,7 +1,7 @@
 # leapcast
 [![Flattr this git repo](http://api.flattr.com/button/flattr-badge-large.png)](https://flattr.com/submit/auto?user_id=dz0ny&url=https://github.com/dz0ny/leapcast&title=Leapcast&language=&tags=github&category=software)
 [![Build Status](https://travis-ci.org/dz0ny/leapcast.png?branch=master)](https://travis-ci.org/dz0ny/leapcast)
-
+[![Stats](https://ga-beacon.appspot.com/UA-46813385-1/dz0ny/leapcast)](https://github.com/dz0ny/leapcast)
 
 Simple ChromeCast emulation app.
 
