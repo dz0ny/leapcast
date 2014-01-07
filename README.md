@@ -38,6 +38,7 @@ The following persons have contributed to leapcast.
  - Ernes Durakovic
  - Peter Sanford
  - Michel Tu
+ - Kaiwen Xu 
 
 ## How to install
 

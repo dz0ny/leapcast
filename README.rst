@@ -1,7 +1,7 @@
 leapcast
 ========
 
-|Flattr this git repo| |Build Status|
+|Flattr this git repo| |Build Status| |Stats|
 
 Simple ChromeCast emulation app.
 
@@ -15,6 +15,12 @@ Working:
 -  HBO GO (with https://play.google.com/store/apps/details?id=com.HBO)
 -  Hulu Plus (with
    https://play.google.com/store/apps/details?id=com.hulu.plus)
+-  Pandora (with
+   https://play.google.com/store/apps/details?id=com.pandora.android )
+-  RedBull TV (with
+   https://play.google.com/store/apps/details?id=com.nousguide.android.rbtv)
+-  Others (see
+   http://en.wikipedia.org/wiki/Chromecast#Chrome\_and\_mobile\_apps)
 
 On real device enabled apps are fetched from
 https://clients3.google.com/cast/chromecast/device/config . Bugs in
@@ -42,6 +48,7 @@ The following persons have contributed to leapcast.
 -  Ernes Durakovic
 -  Peter Sanford
 -  Michel Tu
+-  Kaiwen Xu
 
 How to install
 --------------
@@ -91,5 +98,7 @@ https://plus.google.com/100317092290545434762/posts/8RjWfMXxje8
    :target: https://flattr.com/submit/auto?user_id=dz0ny&url=https://github.com/dz0ny/leapcast&title=Leapcast&language=&tags=github&category=software
 .. |Build Status| image:: https://travis-ci.org/dz0ny/leapcast.png?branch=master
    :target: https://travis-ci.org/dz0ny/leapcast
+.. |Stats| image:: https://ga-beacon.appspot.com/UA-46813385-1/dz0ny/leapcast
+   :target: https://github.com/dz0ny/leapcast
 .. |Bitdeli Badge| image:: https://piwik-ubuntusi.rhcloud.com/piwik.php?idsite=2&rec=1
    :target: https://bitdeli.com/free
