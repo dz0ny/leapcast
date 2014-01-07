@@ -1,6 +1,5 @@
 from __future__ import unicode_literals
 
-import shlex
 import subprocess
 import copy
 import logging
