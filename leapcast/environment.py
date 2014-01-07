@@ -43,6 +43,9 @@ def parse_cmd():
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', action='store_true',
                         default=False, help='Debug')
+    parser.add_argument('-i', '--interface', action='append',
+                        dest='interfaces', help='Interface to bind to (can be specified multiple times)',
+                        metavar='IPADDRESS')
     parser.add_argument('--name', help='Friendly name for this device')
     parser.add_argument('--user_agent', help='Custom user agent')
     parser.add_argument('--chrome', help='Path to Google Chrome executable')
@@ -52,6 +55,10 @@ def parse_cmd():
                         default=False, help='Set the initial chrome window size. eg 1920,1080')
     parser.add_argument('--ips', help='Allowed ips')
     args = parser.parse_args()
+
+    if args.interfaces:
+        Environment.interfaces = args.interfaces
+        logger.debug('Interfaces is %s' % Environment.interfaces)
 
     if args.name:
         Environment.friendlyName = args.name
