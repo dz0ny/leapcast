@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+import sys
 import tornado.ioloop
 import tornado.web
 import tornado.websocket
@@ -38,6 +39,22 @@ class LEAPserver(object):
         # list of added apps for apps getting added manually
         added_apps = []
 
+        if Environment.apps:
+            logging.info('Reading app file: %s' % Environment.apps)
+            try:
+                f = open(Environment.apps)
+                tmp = json.load(f)
+                f.close()
+
+                for key in tmp:
+                    if key == 'applications':
+                        data[key] += tmp[key]
+
+                    else:
+                        data[key] = tmp[key]
+            except Exception as e:
+                logging.error('Couldn\'t read app file: %s' % e)
+
         for app in data['applications']:
             name = app['app_name']
             name = name.encode('utf-8')
@@ -53,11 +70,6 @@ class LEAPserver(object):
             clazz = type((name), (LEAPfactory,), {"url": url})
             routes.append(("(/apps/" + name + "|/apps/" + name + ".*)", clazz))
             added_apps.append(name)
-
-        # possibly add user defined app classes
-        if Environment.imports:
-            for tmp in Environment.imports.split(':'):
-                exec('from %s import *' % tmp)
 
         # add registread apps
         for app in LEAPfactory.get_subclasses():
