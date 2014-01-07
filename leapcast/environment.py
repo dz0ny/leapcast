@@ -9,13 +9,13 @@ logger = logging.getLogger('Environment')
 
 
 def _get_chrome_path():
-    if sys.platform.startswith('win32'):
+    if sys.platform == 'win32':
         # First path includes fallback for Windows XP, because it doesn't have
         # LOCALAPPDATA variable.
         paths = [os.path.join(os.getenv('LOCALAPPDATA', os.path.join(os.getenv('USERPROFILE'), 'Local Settings\\Application Data')), 'Google\\Chrome\\Application\\chrome.exe'),
                  os.path.join(os.getenv('ProgramW6432', 'C:\\Program Files'), 'Google\\Chrome\\Application\\chrome.exe'),
                  os.path.join(os.getenv('ProgramFiles(x86)', 'C:\\Program Files (x86)'), 'Google\\Chrome\\Application\\chrome.exe')]
-    elif sys.platform.startswith('darwin'):
+    elif sys.platform == 'darwin':
         paths = ['/Applications/Google Chrome.app/Contents/MacOS/Google Chrome']
     else:
         paths = ['/usr/bin/google-chrome',
