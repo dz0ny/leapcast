@@ -1,9 +1,28 @@
 from __future__ import unicode_literals
 import argparse
 import logging
+import os
+import sys
 import uuid
 
 logger = logging.getLogger('Environment')
+
+
+def _get_chrome_path():
+    if sys.platform == 'win32':
+        # First path includes fallback for Windows XP, because it doesn't have
+        # LOCALAPPDATA variable.
+        paths = [os.path.join(os.getenv('LOCALAPPDATA', os.path.join(os.getenv('USERPROFILE'), 'Local Settings\\Application Data')), 'Google\\Chrome\\Application\\chrome.exe'),
+                 os.path.join(os.getenv('ProgramW6432', 'C:\\Program Files'), 'Google\\Chrome\\Application\\chrome.exe'),
+                 os.path.join(os.getenv('ProgramFiles(x86)', 'C:\\Program Files (x86)'), 'Google\\Chrome\\Application\\chrome.exe')]
+    elif sys.platform == 'darwin':
+        paths = ['/Applications/Google Chrome.app/Contents/MacOS/Google Chrome']
+    else:
+        paths = ['/usr/bin/google-chrome',
+                 '/usr/bin/chromium-browser']
+    for path in paths:
+        if os.path.exists(path):
+            return path
 
 
 class Environment(object):
@@ -11,7 +30,7 @@ class Environment(object):
     global_status = dict()
     friendlyName = 'leapcast'
     user_agent = 'Mozilla/5.0 (CrKey - 0.9.3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/30.0.1573.2 Safari/537.36'
-    chrome = '/usr/bin/chromium-browser'
+    chrome = _get_chrome_path()
     fullscreen = False
     window_size = False
     interface = None
