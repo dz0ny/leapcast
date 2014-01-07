@@ -96,7 +96,7 @@ https://plus.google.com/100317092290545434762/posts/8RjWfMXxje8
       --fullscreen          Start in full-screen mode
       --window_size WINDOW_SIZE
                             Set the initial chrome window size. eg 1920,1080
-      --ips IPS             Allowed ips
+      --ips IPS             Allowed ips from which clients can connect
 
 |Bitdeli Badge|
 

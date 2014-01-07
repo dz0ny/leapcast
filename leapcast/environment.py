@@ -12,11 +12,15 @@ def _get_chrome_path():
     if sys.platform == 'win32':
         # First path includes fallback for Windows XP, because it doesn't have
         # LOCALAPPDATA variable.
-        paths = [os.path.join(os.getenv('LOCALAPPDATA', os.path.join(os.getenv('USERPROFILE'), 'Local Settings\\Application Data')), 'Google\\Chrome\\Application\\chrome.exe'),
-                 os.path.join(os.getenv('ProgramW6432', 'C:\\Program Files'), 'Google\\Chrome\\Application\\chrome.exe'),
-                 os.path.join(os.getenv('ProgramFiles(x86)', 'C:\\Program Files (x86)'), 'Google\\Chrome\\Application\\chrome.exe')]
+        paths = [os.path.join(
+            os.getenv(
+                'LOCALAPPDATA', os.path.join(os.getenv('USERPROFILE'), 'Local Settings\\Application Data')), 'Google\\Chrome\\Application\\chrome.exe'),
+            os.path.join(os.getenv('ProgramW6432', 'C:\\Program Files'),
+                         'Google\\Chrome\\Application\\chrome.exe'),
+            os.path.join(os.getenv('ProgramFiles(x86)', 'C:\\Program Files (x86)'), 'Google\\Chrome\\Application\\chrome.exe')]
     elif sys.platform == 'darwin':
-        paths = ['/Applications/Google Chrome.app/Contents/MacOS/Google Chrome']
+        paths = [
+            '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome']
     else:
         paths = ['/usr/bin/google-chrome',
                  '/usr/bin/chromium-browser']
@@ -33,7 +37,7 @@ class Environment(object):
     chrome = _get_chrome_path()
     fullscreen = False
     window_size = False
-    interface = None
+    interfaces = None
     uuid = None
     ips = []
     verbosity = logging.INFO
@@ -44,7 +48,8 @@ def parse_cmd():
     parser.add_argument('-d', action='store_true',
                         default=False, help='Debug')
     parser.add_argument('-i', '--interface', action='append',
-                        dest='interfaces', help='Interface to bind to (can be specified multiple times)',
+                        dest='interfaces',
+                        help='Interface to bind to (can be specified multiple times)',
                         metavar='IPADDRESS')
     parser.add_argument('--name', help='Friendly name for this device')
     parser.add_argument('--user_agent', help='Custom user agent')
@@ -52,8 +57,10 @@ def parse_cmd():
     parser.add_argument('--fullscreen', action='store_true',
                         default=False, help='Start in full-screen mode')
     parser.add_argument('--window_size',
-                        default=False, help='Set the initial chrome window size. eg 1920,1080')
-    parser.add_argument('--ips', help='Allowed ips')
+                        default=False,
+                        help='Set the initial chrome window size. eg 1920,1080')
+    parser.add_argument(
+        '--ips', help='Allowed ips from which clients can connect')
     args = parser.parse_args()
 
     if args.interfaces:

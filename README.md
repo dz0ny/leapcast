@@ -78,7 +78,7 @@ optional arguments:
   --fullscreen          Start in full-screen mode
   --window_size WINDOW_SIZE
                         Set the initial chrome window size. eg 1920,1080
-  --ips IPS             Allowed ips
+  --ips IPS             Allowed ips from which clients can connect
 
 ```
 
