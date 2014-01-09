@@ -33,7 +33,7 @@ def main():
     signal.signal(signal.SIGINT, shutdown)
 
     ssdp_server = SSDPserver()
-    ssdp_server.start()
+    ssdp_server.start(Environment.interfaces)
 
     leap_server = LEAPserver()
     leap_server.start()

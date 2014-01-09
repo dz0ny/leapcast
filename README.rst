@@ -1,7 +1,7 @@
 leapcast
 ========
 
-|Flattr this git repo| |Build Status|
+|Flattr this git repo| |Build Status| |Stats|
 
 Simple ChromeCast emulation app.
 
@@ -15,6 +15,12 @@ Working:
 -  HBO GO (with https://play.google.com/store/apps/details?id=com.HBO)
 -  Hulu Plus (with
    https://play.google.com/store/apps/details?id=com.hulu.plus)
+-  Pandora (with
+   https://play.google.com/store/apps/details?id=com.pandora.android )
+-  RedBull TV (with
+   https://play.google.com/store/apps/details?id=com.nousguide.android.rbtv)
+-  Others (see
+   http://en.wikipedia.org/wiki/Chromecast#Chrome\_and\_mobile\_apps)
 
 On real device enabled apps are fetched from
 https://clients3.google.com/cast/chromecast/device/config . Bugs in
@@ -42,6 +48,8 @@ The following persons have contributed to leapcast.
 -  Ernes Durakovic
 -  Peter Sanford
 -  Michel Tu
+-  Kaiwen Xu
+-  Norman Rasmussen
 
 How to install
 --------------
@@ -72,18 +80,23 @@ https://plus.google.com/100317092290545434762/posts/8RjWfMXxje8
 
 ::
 
-    usage: leapcast [-h] [-d] [--name NAME] [--user_agent USER_AGENT]
-                    [--chrome CHROME] [--fullscreen]
+    usage: leapcast [-h] [-d] [-i IPADDRESS] [--name NAME]
+                    [--user_agent USER_AGENT] [--chrome CHROME] [--fullscreen]
+                    [--window_size WINDOW_SIZE] [--ips IPS]
 
     optional arguments:
       -h, --help            show this help message and exit
       -d                    Debug
+      -i IPADDRESS, --interface IPADDRESS
+                            Interface to bind to (can be specified multiple times)
       --name NAME           Friendly name for this device
       --user_agent USER_AGENT
                             Custom user agent
       --chrome CHROME       Path to Google Chrome executable
       --fullscreen          Start in full-screen mode
-      --window_size         Force the initial window size (eg 1920,1080)
+      --window_size WINDOW_SIZE
+                            Set the initial chrome window size. eg 1920,1080
+      --ips IPS             Allowed ips from which clients can connect
 
 |Bitdeli Badge|
 
@@ -91,5 +104,7 @@ https://plus.google.com/100317092290545434762/posts/8RjWfMXxje8
    :target: https://flattr.com/submit/auto?user_id=dz0ny&url=https://github.com/dz0ny/leapcast&title=Leapcast&language=&tags=github&category=software
 .. |Build Status| image:: https://travis-ci.org/dz0ny/leapcast.png?branch=master
    :target: https://travis-ci.org/dz0ny/leapcast
+.. |Stats| image:: https://ga-beacon.appspot.com/UA-46813385-1/dz0ny/leapcast
+   :target: https://github.com/dz0ny/leapcast
 .. |Bitdeli Badge| image:: https://piwik-ubuntusi.rhcloud.com/piwik.php?idsite=2&rec=1
    :target: https://bitdeli.com/free

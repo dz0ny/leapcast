@@ -38,6 +38,8 @@ The following persons have contributed to leapcast.
  - Ernes Durakovic
  - Peter Sanford
  - Michel Tu
+ - Kaiwen Xu
+ - Norman Rasmussen
 
 ## How to install
 
@@ -60,19 +62,28 @@ pip install .
 For those on Windows(tm) follow this guide https://gist.github.com/eyecatchup/6219118 or https://plus.google.com/100317092290545434762/posts/8RjWfMXxje8
 
 ```
-usage: leapcast [-h] [-d] [--name NAME] [--user_agent USER_AGENT]
-                [--chrome CHROME] [--fullscreen]
+usage: leapcast [-h] [-d] [-i IPADDRESS] [--name NAME]
+                [--user_agent USER_AGENT] [--chrome CHROME] [--fullscreen]
+                [--window_size WINDOW_SIZE] [--ips IPS]
 
 optional arguments:
   -h, --help            show this help message and exit
   -d                    Debug
+  -i IPADDRESS, --interface IPADDRESS
+                        Interface to bind to (can be specified multiple times)
   --name NAME           Friendly name for this device
   --user_agent USER_AGENT
                         Custom user agent
   --chrome CHROME       Path to Google Chrome executable
   --fullscreen          Start in full-screen mode
+<<<<<<< HEAD
   --window_size         Force the initial window size (eg 1920,1080)
   --apps JSON_FILE      Add apps from the given JSON file
+=======
+  --window_size WINDOW_SIZE
+                        Set the initial chrome window size. eg 1920,1080
+  --ips IPS             Allowed ips from which clients can connect
+>>>>>>> upstream/master
 
 ```
 

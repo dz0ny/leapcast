@@ -1,6 +1,5 @@
 from __future__ import unicode_literals
 
-import shlex
 import subprocess
 import copy
 import logging
@@ -17,16 +16,25 @@ from leapcast.environment import Environment
 class Browser(object):
 
     def __init__(self, appurl):
-        if not Environment.fullscreen:
-            appurl = '--app="%s"' % appurl
-        command_line = '''--no-default-browser-check --ignore-gpu-blacklist --incognito --no-first-run --kiosk --user-agent="%s"  %s''' % (
-            Environment.user_agent, appurl)
-        args = [Environment.chrome]
-        args.extend(shlex.split(command_line.encode('utf8')))
+        args = [
+            Environment.chrome,
+            '--allow-running-insecure-content',
+            '--no-default-browser-check',
+            '--ignore-gpu-blacklist',
+            '--incognito',
+            '--no-first-run',
+            '--kiosk',
+            '--disable-translate',
+            '--user-agent=%s' % Environment.user_agent.encode('utf8')
+        ]
         self.tmpdir = tempfile.mkdtemp(prefix='leapcast-')
         args.append('--user-data-dir=%s' % self.tmpdir)
         if Environment.window_size:
             args.append('--window-size=%s' % Environment.window_size)
+        if not Environment.fullscreen:
+            args.append('--app=%s' % appurl.encode('utf8'))
+        else:
+            args.append(appurl.encode('utf8'))
         logging.debug(args)
         self.pid = subprocess.Popen(args)
 
