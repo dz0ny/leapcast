@@ -1,6 +1,5 @@
 from __future__ import unicode_literals
 
-import sys
 import tornado.ioloop
 import tornado.web
 import tornado.websocket
