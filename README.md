@@ -76,14 +76,10 @@ optional arguments:
                         Custom user agent
   --chrome CHROME       Path to Google Chrome executable
   --fullscreen          Start in full-screen mode
-<<<<<<< HEAD
-  --window_size         Force the initial window size (eg 1920,1080)
-  --apps JSON_FILE      Add apps from the given JSON file
-=======
   --window_size WINDOW_SIZE
                         Set the initial chrome window size. eg 1920,1080
   --ips IPS             Allowed ips from which clients can connect
->>>>>>> upstream/master
+  --apps JSON_FILE      Add apps from the given JSON file
 
 ```
 
