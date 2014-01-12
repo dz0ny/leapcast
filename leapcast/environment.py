@@ -46,8 +46,8 @@ class Environment(object):
 
 def parse_cmd():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-d', action='store_true',
-                        default=False, help='Debug')
+    parser.add_argument('-d', '--debug', action='store_true',
+                        default=False, dest='debug', help='Debug')
     parser.add_argument('-i', '--interface', action='append',
                         dest='interfaces',
                         help='Interface to bind to (can be specified multiple times)',
@@ -65,6 +65,10 @@ def parse_cmd():
     parser.add_argument('--apps', help='Add apps from JSON file')
 
     args = parser.parse_args()
+
+    if args.debug:
+        Environment.verbosity = logging.DEBUG
+    logging.basicConfig(level=Environment.verbosity)
 
     if args.interfaces:
         Environment.interfaces = args.interfaces

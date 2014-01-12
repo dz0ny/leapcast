@@ -86,7 +86,7 @@ https://plus.google.com/100317092290545434762/posts/8RjWfMXxje8
 
     optional arguments:
       -h, --help            show this help message and exit
-      -d                    Debug
+      -d, --debug           Debug
       -i IPADDRESS, --interface IPADDRESS
                             Interface to bind to (can be specified multiple times)
       --name NAME           Friendly name for this device
