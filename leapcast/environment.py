@@ -98,9 +98,6 @@ def parse_cmd():
     if args.apps:
         Environment.apps = args.apps
 
-    if args.d:
-        Environment.verbosity = logging.DEBUG
-
     generate_uuid()
 
 
