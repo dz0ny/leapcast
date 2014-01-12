@@ -7,7 +7,7 @@ import logging
 import json
 import requests
 from leapcast.apps.default import *
-from leapcast.services.dial import DeviceHandler, ChannelFactory
+from leapcast.services.dial import DeviceHandler, ChannelFactory, SetupHandler
 from leapcast.services.websocket import ServiceChannel, ReceiverChannel, ApplicationChannel, CastPlatform
 from leapcast.services.leap_factory import LEAPfactory
 from leapcast.environment import Environment
@@ -19,6 +19,7 @@ class LEAPserver(object):
         logging.info('Starting LEAP server')
         routes = [
             (r"/ssdp/device-desc.xml", DeviceHandler),
+            (r"/setup/([^\/]+)", SetupHandler),
             (r"/apps", DeviceHandler),
             (r"/connection", ServiceChannel),
             (r"/connection/([^\/]+)", ChannelFactory),
