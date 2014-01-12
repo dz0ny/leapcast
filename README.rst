@@ -50,6 +50,7 @@ The following persons have contributed to leapcast.
 -  Michel Tu
 -  Kaiwen Xu
 -  Norman Rasmussen
+-  Sven Wischnowsky
 
 How to install
 --------------
@@ -82,7 +83,7 @@ https://plus.google.com/100317092290545434762/posts/8RjWfMXxje8
 
     usage: leapcast [-h] [-d] [-i IPADDRESS] [--name NAME]
                     [--user_agent USER_AGENT] [--chrome CHROME] [--fullscreen]
-                    [--window_size WINDOW_SIZE] [--ips IPS]
+                    [--window_size WINDOW_SIZE] [--ips IPS] [--apps APPS]
 
     optional arguments:
       -h, --help            show this help message and exit
@@ -97,7 +98,7 @@ https://plus.google.com/100317092290545434762/posts/8RjWfMXxje8
       --window_size WINDOW_SIZE
                             Set the initial chrome window size. eg 1920,1080
       --ips IPS             Allowed ips from which clients can connect
-      --apps JSON_FILE      Add apps from the given JSON file
+      --apps APPS           Add apps from JSON file
 
 |Bitdeli Badge|
 
