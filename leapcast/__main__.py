@@ -18,7 +18,6 @@ logger = logging.getLogger('Leapcast')
 
 def main():
     parse_cmd()
-    logging.basicConfig(level=Environment.verbosity)
 
     if sys.platform == 'darwin' and environ.get('TMUX') is not None:
         logger.error('Running Chrome inside tmux on OS X might cause problems.'
