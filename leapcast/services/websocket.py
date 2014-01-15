@@ -277,7 +277,7 @@ class ApplicationChannel(WSC):
 
         channel = self.app.get_self_app_channel(self)
         if channel:
-            data = json.dumps(["cm", {"type": "ping"}])
+            data = json.dumps(["cm", {"type": "ping", "cmd_id": 0}])
             channel.write_message(data)
             # TODO Magic number -- Not sure what the interval should be, the
             # value of `pingInterval` is 0.
