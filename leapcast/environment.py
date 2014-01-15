@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 import argparse
+import glob
 import logging
 import os
 import sys
@@ -12,21 +13,24 @@ def _get_chrome_path():
     if sys.platform == 'win32':
         # First path includes fallback for Windows XP, because it doesn't have
         # LOCALAPPDATA variable.
-        paths = [os.path.join(
+        globs = [os.path.join(
             os.getenv(
                 'LOCALAPPDATA', os.path.join(os.getenv('USERPROFILE'), 'Local Settings\\Application Data')), 'Google\\Chrome\\Application\\chrome.exe'),
             os.path.join(os.getenv('ProgramW6432', 'C:\\Program Files'),
                          'Google\\Chrome\\Application\\chrome.exe'),
             os.path.join(os.getenv('ProgramFiles(x86)', 'C:\\Program Files (x86)'), 'Google\\Chrome\\Application\\chrome.exe')]
     elif sys.platform == 'darwin':
-        paths = [
+        globs = [
             '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome']
     else:
-        paths = ['/usr/bin/google-chrome',
+        globs = ['/usr/bin/google-chrome',
+                 '/opt/google/chrome/google-chrome',
+                 '/opt/google/chrome-*/google-chrome',
                  '/usr/bin/chromium-browser']
-    for path in paths:
-        if os.path.exists(path):
-            return path
+    for g in globs:
+        for path in glob.glob(g):
+            if os.path.exists(path):
+                return path
 
 
 class Environment(object):
@@ -97,6 +101,9 @@ def parse_cmd():
 
     if args.apps:
         Environment.apps = args.apps
+
+    if Environment.chrome is None:
+        parser.error('could not locate chrome; use --chrome to specify one')
 
     generate_uuid()
 
