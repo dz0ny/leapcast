@@ -97,6 +97,7 @@ https://plus.google.com/100317092290545434762/posts/8RjWfMXxje8
       --window_size WINDOW_SIZE
                             Set the initial chrome window size. eg 1920,1080
       --ips IPS             Allowed ips from which clients can connect
+      --apps JSON_FILE      Add apps from the given JSON file
 
 |Bitdeli Badge|
 
