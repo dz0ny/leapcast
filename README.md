@@ -3,6 +3,18 @@
 [![Build Status](https://travis-ci.org/dz0ny/leapcast.png?branch=master)](https://travis-ci.org/dz0ny/leapcast)
 [![Stats](https://ga-beacon.appspot.com/UA-46813385-1/dz0ny/leapcast)](https://github.com/dz0ny/leapcast)
 
+# Chromecast API v2
+
+API was compleatly changed, 17. of march is also the date that old apps and apis are no longer supported and will be gradualy upgraded to new API. 
+
+In order to get it working again, we need to:
+
+- Implement MDNS discovery (DIAL has be deprecated)
+- Implement encryption of packets (mayor pain, because android SDK and web, now check for certificate issuer)
+- RAMP protocol has been extended and most of the old methods are no longer used (ping is the only one remaining)
+- Websocket technology is still used, but packets are encypted using public key cryptography (public key is advertised during discovery) 
+
+
 Simple ChromeCast emulation app.
 
 Working:
