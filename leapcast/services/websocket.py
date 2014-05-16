@@ -214,10 +214,11 @@ class WSC(tornado.websocket.WebSocketHandler):
 
     def on_message(self, message):
         if Environment.verbosity is logging.DEBUG:
-            pretty = json.loads(message)
-            message = json.dumps(
-                pretty, sort_keys=True, indent=2)
-            logging.debug("%s: %s" % (self.cname, message))
+            if not('ping' in message or 'pong' in message):
+                pretty = json.loads(message)
+                message = json.dumps(
+                    pretty, sort_keys=True, indent=2)
+                logging.debug("%s: %s" % (self.cname, message))
 
     def on_close(self):
         if self.app.name in Environment.channels:
@@ -331,4 +332,8 @@ class CastPlatform(tornado.websocket.WebSocketHandler):
     '''
 
     def on_message(self, message):
-        pass
+        if Environment.verbosity is logging.DEBUG:
+            pretty = json.loads(message)
+            message = json.dumps(
+                pretty, sort_keys=True, indent=2)
+            logging.debug("CastPlatform: %s" % message)

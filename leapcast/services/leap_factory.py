@@ -89,11 +89,6 @@ class LEAPfactory(tornado.web.RequestHandler):
     url = '{{query}}'
     supported_protocols = ['ramp']
 
-    @classmethod
-    def get_subclasses(c):
-        subclasses = c.__subclasses__()
-        return list(subclasses)
-
     def get_name(self):
         return self.__class__.__name__
 
@@ -127,22 +122,22 @@ class LEAPfactory(tornado.web.RequestHandler):
         self.clear()
         self.set_status(201)
         self.set_header('Location', self._getLocation(self.get_name()))
+        self.start_app(True)
+        self.finish()
+
+    def start_app(self, run_browser):
         status = self.get_app_status()
         if status['browser'] is None:
             status['state'] = 'running'
-            if self.url == "https://tv.pandora.com/cast?{{ query }}":
-                appurl = render(self.url.replace("{{ query }}", self.request.body)).generate(query=self.request.body)
-            else:
-                appurl = render(self.url).generate(query=self.request.body)
-            status['browser'] = Browser(appurl)
+            appurl = render(self.url).generate(query=self.request.body if
+            self.request else None)
+            status['browser'] = Browser(appurl) if run_browser else False
             status['connectionSvcURL'] = 'http://%s/connection/%s' % (
                 self.ip, self.get_name())
             status['protocols'] = self.supported_protocols
-            status['app'] = App.get_instance(sec)
+            status['app'] = App.get_instance(self.get_name())
 
         self.set_app_status(status)
-        self.finish()
-
     def stop_app(self):
         self.clear()
         browser = self.get_app_status()['browser']

@@ -8,7 +8,6 @@ import tornado.web
 
 
 class DeviceHandler(tornado.web.RequestHandler):
-
     '''
     Holds info about device
     '''
@@ -41,31 +40,16 @@ class DeviceHandler(tornado.web.RequestHandler):
     def get(self):
         if Environment.ips and self.request.remote_ip not in Environment.ips:
             raise tornado.web.HTTPError(403)
-
-        if self.request.uri == "/apps":
-            for app, astatus in Environment.global_status.items():
-                if astatus["state"] == "running":
-                    self.redirect("/apps/%s" % app)
-            self.set_status(204)
-            self.set_header(
-                "Access-Control-Allow-Method", "GET, POST, DELETE, OPTIONS")
-            self.set_header("Access-Control-Expose-Headers", "Location")
-        else:
-            self.set_header(
-                "Access-Control-Allow-Method", "GET, POST, DELETE, OPTIONS")
-            self.set_header("Access-Control-Expose-Headers", "Location")
-            self.add_header(
-                "Application-URL", "http://%s/apps" % self.request.host)
-            self.set_header("Content-Type", "application/xml")
-            self.write(render(self.device).generate(
-                friendlyName=Environment.friendlyName,
-                uuid=Environment.uuid,
-                path="http://%s" % self.request.host)
-            )
+        global_app = True
+        for app, astatus in Environment.global_status.items():
+            if astatus["state"] == "running":
+                self.redirect("/apps/%s" % app)
+                global_app = False
+        if global_app:
+            self.redirect("/apps/00000000-0000-0000-0000-000000000000")
 
 
 class SetupHandler(tornado.web.RequestHandler):
-
     '''
     Holds info about device setup and status
     '''
@@ -159,7 +143,8 @@ class SetupHandler(tornado.web.RequestHandler):
             raise tornado.web.HTTPError(404)
 
     def post(self, module=None):
-        if ((len(Environment.ips) == 0) | (self.request.remote_ip in Environment.ips)):
+        if ((len(Environment.ips) == 0) | (
+            self.request.remote_ip in Environment.ips)):
             if module == "scan_wifi":
                 pass
             elif module == "set_eureka_info":
@@ -173,10 +158,10 @@ class SetupHandler(tornado.web.RequestHandler):
 
 
 class ChannelFactory(tornado.web.RequestHandler):
-
     '''
     Creates Websocket Channel. This is requested by 2nd screen application
     '''
+
     @tornado.web.asynchronous
     def post(self, app=None):
         self.app = App.get_instance(app)

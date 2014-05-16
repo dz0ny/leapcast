@@ -11,7 +11,7 @@ from os import environ
 
 from leapcast.environment import parse_cmd, Environment
 from leapcast.services.leap import LEAPserver
-from leapcast.services.ssdp import SSDPserver
+from leapcast.utils.avahi import Zeroconf
 
 logger = logging.getLogger('Leapcast')
 
@@ -25,14 +25,15 @@ def main():
         sys.exit(1)
 
     def shutdown(signum, frame):
-        ssdp_server.shutdown()
         leap_server.sig_handler(signum, frame)
+        avahi_service.unpublish()
 
     signal.signal(signal.SIGTERM, shutdown)
     signal.signal(signal.SIGINT, shutdown)
 
-    ssdp_server = SSDPserver()
-    ssdp_server.start(Environment.interfaces)
+    avahi_service = Zeroconf(
+        Environment.friendlyName, 8008, host='::')
+    avahi_service.publish()
 
     leap_server = LEAPserver()
     leap_server.start()

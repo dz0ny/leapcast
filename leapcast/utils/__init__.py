@@ -1,6 +1,5 @@
-# -*- coding: utf8 -*-
-
 from __future__ import unicode_literals
+
 from tornado.template import Template
 from textwrap import dedent
 import threading

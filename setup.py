@@ -28,7 +28,6 @@ readme = read_from(get_path('README.rst'))
 setup(
     name='Leapcast',
     version=version,
-    url='http://www.mopidy.com/',
     license='MIT',
     author='Janez Troha',
     author_email='janez.troha@gmail.com',

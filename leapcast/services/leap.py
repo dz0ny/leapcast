@@ -6,7 +6,6 @@ import tornado.websocket
 import logging
 import json
 import requests
-from leapcast.apps.default import *
 from leapcast.services.dial import DeviceHandler, ChannelFactory, SetupHandler
 from leapcast.services.websocket import ServiceChannel, ReceiverChannel, ApplicationChannel, CastPlatform
 from leapcast.services.leap_factory import LEAPfactory
@@ -20,7 +19,7 @@ class LEAPserver(object):
         routes = [
             (r"/ssdp/device-desc.xml", DeviceHandler),
             (r"/setup/([^\/]+)", SetupHandler),
-            (r"/apps", DeviceHandler),
+            (r"/apps/?", DeviceHandler),
             (r"/connection", ServiceChannel),
             (r"/connection/([^\/]+)", ChannelFactory),
             (r"/receiver/([^\/]+)", ReceiverChannel),
@@ -30,7 +29,7 @@ class LEAPserver(object):
 
         # download apps from google servers
         logging.info('Loading Config-JSON from Google-Server')
-        app_dict_url = 'https://clients3.google.com/cast/chromecast/device/config'
+        app_dict_url = 'https://clients3.google.com/cast/chromecast/device/baseconfig'
         # load json-file
         resp = requests.get(url=app_dict_url)
         logging.info('Parsing Config-JSON')
@@ -56,10 +55,10 @@ class LEAPserver(object):
                 logging.error('Couldn\'t read app file: %s' % e)
 
         for app in data['applications']:
-            name = app['app_name']
-            name = name.encode('utf-8')
+            name = app['app_id'].encode('utf-8')
             if 'url' not in app:
-                logging.warn('Didn\'t add %s because it has no URL!' % name)
+                logging.warning('Didn\'t add %s because it has no URL!' %
+                                name)
                 continue
             logging.info('Added %s app' % name)
             url = app['url']
@@ -67,18 +66,9 @@ class LEAPserver(object):
                 "${POST_DATA}", "{{ query }}")
             # this doesn't support all params yet, but seems to work with
             # youtube, chromecast and play music.
-            clazz = type((name), (LEAPfactory,), {"url": url})
+            clazz = type(name, (LEAPfactory,), {"url": url})
             routes.append(("(/apps/" + name + "|/apps/" + name + ".*)", clazz))
             added_apps.append(name)
-
-        # add registread apps
-        for app in LEAPfactory.get_subclasses():
-            name = app.__name__
-            if name in added_apps:
-                continue
-            logging.info('Added %s app' % name)
-            routes.append((
-                          r"(/apps/" + name + "|/apps/" + name + ".*)", app))
 
         self.application = tornado.web.Application(routes)
         self.application.listen(8008)
