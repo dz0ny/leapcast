@@ -11,7 +11,7 @@ from os import environ
 
 from leapcast.environment import parse_cmd, Environment
 from leapcast.services.leap import LEAPserver
-from leapcast.utils.avahi import Zeroconf
+from leapcast.services.mdns import MDNSserver
 
 logger = logging.getLogger('Leapcast')
 
@@ -26,14 +26,13 @@ def main():
 
     def shutdown(signum, frame):
         leap_server.sig_handler(signum, frame)
-        avahi_service.unpublish()
+        mdns_server.shutdown()
 
     signal.signal(signal.SIGTERM, shutdown)
     signal.signal(signal.SIGINT, shutdown)
 
-    avahi_service = Zeroconf(
-        Environment.friendlyName, 8008, host='::')
-    avahi_service.publish()
+    mdns_server = MDNSserver()
+    mdns_server.start(Environment.interfaces)
 
     leap_server = LEAPserver()
     leap_server.start()
