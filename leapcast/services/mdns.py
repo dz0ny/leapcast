@@ -7,11 +7,54 @@ import struct
 import operator
 import logging
 from SocketServer import ThreadingUDPServer, DatagramRequestHandler
+from time import sleep
 
-from dnslib import RR, DNSRecord, QTYPE, A, PTR, TXT, SRV
-from dnslib.dns import CLASS
+from dnslib import PTR, QTYPE, RR, DNSRecord, SRV, A, RD, BimapError, \
+    DNSError, DNSHeader
+from impacket.dns import DNS, DNSType
 
+from leapcast.environment import Environment
 from leapcast.utils import ControlMixin
+
+
+def mDNSHeader():
+    header = DNSHeader(id=0, ra=1, aa=1, qr=1)
+    return DNSRecord(header)
+
+class MTXT(RD):
+    @classmethod
+    def parse(cls, buffer, length):
+        try:
+            (txtlength,) = buffer.unpack("!B")
+            # First byte is TXT length (not in RFC?)
+            if txtlength < length:
+                data = buffer.get(txtlength)
+            else:
+                raise DNSError("Invalid TXT record: len(%d) > RD len(%d)" %
+                               (txtlength, length))
+            return cls(data)
+        except (BufferError, BimapError) as e:
+            raise DNSError("Error unpacking TXT [offset=%d]: %s" %
+                           (buffer.offset, e))
+
+    @classmethod
+    def fromZone(cls, rd, origin=None):
+        return cls(rd[0].encode())
+
+    def __init__(self, txts=[]):
+        self.multiple_texts = txts
+
+    def pack(self, buffer):
+        for txt in self.multiple_texts:
+            buffer.append(struct.pack("!B", len(txt)))
+            buffer.append(str(txt))
+
+    def toZone(self):
+        return '"%s"' % repr(self)
+
+    def __repr__(self):
+        # Pyyhon 2/3 hack
+        return ' '.join(self.multiple_texts)
 
 
 def GetInterfaceAddress(if_name):
@@ -103,56 +146,61 @@ class MDNSHandler(DatagramRequestHandler):
         return unicode(iface)
 
     def datagramReceived(self, datagram, address):
+        if not len(datagram) > 0:
+            return
         try:
-            req = DNSRecord.parse(datagram)
-            print(req)
-            if '_googlecast._tcp.local.' in str(req.get_q().get_qname()) and 12 == req\
-                    .get_q().qtype and req.get_q().qclass == 1:
-                res = req.reply()
-                res.add_answer(RR(
-                    "_googlecast._tcp.local",
-                    QTYPE.PTR,
-                    rdata=PTR("leapcast._googlecast._tcp.local"),
-                    ttl=3615
-                ))
-                res.add_ar(RR(
-                    "leapcast._googlecast._tcp.local",
-                    QTYPE.SRV,
-                    rdata=SRV(8009)
-                ))
-                res.add_ar(RR(
-                    "leapcast._googlecast._tcp.local",
-                    QTYPE.A,
-                    rdata=A("192.168.1.29")
-                ))
-                res.add_ar(RR(
-                    "leapcast._googlecast._tcp.local",
-                    QTYPE.TXT,
-                    rdata=TXT("id=99e46e880f89a46ae627f2e75278cb46")
-                ))
-                res.add_ar(RR(
-                    "leapcast._googlecast._tcp.local",
-                    QTYPE.TXT,
-                    rdata=TXT("ve=02")
-                ))
-                res.add_ar(RR(
-                    "leapcast._googlecast._tcp.local",
-                    QTYPE.TXT,
-                    rdata=TXT("md=Chromecast")
-                ))
-                res.add_ar(RR(
-                    "leapcast._googlecast._tcp.local",
-                    QTYPE.TXT,
-                    rdata=TXT("ic=/setup/icon.png")
-                ))
-                self.reply(res.pack(), ('224.0.0.251', 5353))
+            query = DNS(datagram).get_questions()
+            qname, qtype, qclass = query.pop()
         except Exception:
-            pass
+            return
+
+        if '_googlecast._tcp.local' in qname and DNSType.PTR == qtype:
+            ip = self.get_remote_ip(address)
+            name = Environment.friendlyName
+            res = mDNSHeader()
+            res.add_answer(RR(
+                "_googlecast._tcp.local",
+                QTYPE.PTR,
+                rdata=PTR("%s._googlecast._tcp.local" % name),
+                ttl=3615
+            ))
+            res.add_ar(RR(
+                "%s._googlecast._tcp.local" % name,
+                QTYPE.TXT,
+                rdata=MTXT([
+                    'id=99e46e880f89a46ae627f2e75278cb46',
+                    've=02',
+                    'md=Chromecast',
+                    'ic=/setup/icon.png',
+                ]), ttl=3615))
+            res.add_ar(RR(
+                "%s._googlecast._tcp.local" % name,
+                QTYPE.SRV,
+                rdata=SRV(port=8009, target='%s.local' % name)
+            ))
+            res.add_ar(RR(
+                "%s.local" % name,
+                QTYPE.A,
+                rdata=A(ip)
+            ))
+            sleep(1)
+            self.reply(
+                res.pack(), ('224.0.0.251', 5353)
+            )
+        else:
+            print(DNS(datagram))
+
+
+def iptohex(self, ip):
+    return b''.join(
+        ['{:x}'.format(int(x)).zfill(2) for x in ip.split('.')]
+    )
 
 
 class MDNSserver(object):
     MDNS_ADDR = '224.0.0.251'
     MDNS_PORT = 5353
+    server = None
 
     def start(self, interfaces):
         logging.info('Starting MDNS server')

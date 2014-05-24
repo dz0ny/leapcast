@@ -72,6 +72,8 @@ class LEAPserver(object):
 
         self.application = tornado.web.Application(routes)
         self.application.listen(8008)
+        self.application2 = tornado.web.Application(routes)
+        self.application2.listen(8009)
         tornado.ioloop.IOLoop.instance().start()
 
     def shutdown(self, ):
