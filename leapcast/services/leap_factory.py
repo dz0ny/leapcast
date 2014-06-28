@@ -5,16 +5,17 @@ import copy
 import logging
 import tempfile
 import shutil
+
 import tornado.websocket
 import tornado.ioloop
 import tornado.web
+
 from leapcast.services.websocket import App
 from leapcast.utils import render
 from leapcast.environment import Environment
 
 
 class Browser(object):
-
     def __init__(self, appurl):
         args = [
             Environment.chrome,
@@ -101,7 +102,8 @@ class LEAPfactory(tornado.web.RequestHandler):
         self.ip = self.request.host
 
     def get_app_status(self):
-        return Environment.global_status.get(self.get_name(), self.get_status_dict())
+        return Environment.global_status.get(self.get_name(),
+                                             self.get_status_dict())
 
     def set_app_status(self, app_status):
 
@@ -129,8 +131,8 @@ class LEAPfactory(tornado.web.RequestHandler):
         status = self.get_app_status()
         if status['browser'] is None:
             status['state'] = 'running'
-            appurl = render(self.url).generate(query=self.request.body if
-            self.request else None)
+            appurl = render(self.url).generate(
+                query=self.request.body if self.request else None)
             status['browser'] = Browser(appurl) if run_browser else False
             status['connectionSvcURL'] = 'http://%s/connection/%s' % (
                 self.ip, self.get_name())
@@ -138,6 +140,7 @@ class LEAPfactory(tornado.web.RequestHandler):
             status['app'] = App.get_instance(self.get_name())
 
         self.set_app_status(status)
+
     def stop_app(self):
         self.clear()
         browser = self.get_app_status()['browser']

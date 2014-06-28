@@ -102,7 +102,7 @@ class SetupHandler(tornado.web.RequestHandler):
     # shows that it is possible to verify signed_data by:
     # echo "<signed_data>" | base64 -d | openssl rsautl -verify -inkey <certificate> -certin -asn1parse
     # The signed string should match:
-    #   echo -n "<name>,<ssdp_udn>,<hotspot_bssid>,<public_key>,<nonce>" | openssl sha1 -binary | hd
+    # echo -n "<name>,<ssdp_udn>,<hotspot_bssid>,<public_key>,<nonce>" | openssl sha1 -binary | hd
 
     sign_data = '''
         "sign": {
@@ -159,7 +159,7 @@ class SetupHandler(tornado.web.RequestHandler):
 
     def post(self, module=None):
         if ((len(Environment.ips) == 0) | (
-                    self.request.remote_ip in Environment.ips)):
+                self.request.remote_ip in Environment.ips)):
             if module == "scan_wifi":
                 pass
             elif module == "set_eureka_info":

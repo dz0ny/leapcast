@@ -4,14 +4,15 @@ from __future__ import unicode_literals
 from collections import deque
 import json
 import logging
-from leapcast.environment import Environment
-import tornado.web
 import threading
 from __builtin__ import id
 
+import tornado.web
+
+from leapcast.environment import Environment
+
 
 class App(object):
-
     '''
     Used to relay messages between app Environment.channels
     '''
@@ -79,7 +80,8 @@ class App(object):
 
     def get_self_app_channel(self, app):
         try:
-            if isinstance(self.remotes[self.remotes.index(app)].ws_connection, type(None)):
+            if isinstance(self.remotes[self.remotes.index(app)].ws_connection,
+                          type(None)):
                 return False
             return self.remotes[self.remotes.index(app)]
         except Exception:
@@ -91,7 +93,9 @@ class App(object):
             if type(self.receivers[self.remotes.index(app)].ws_connection) != type(None):
                 return self.receivers[self.remotes.index(app)]
             """
-            if isinstance(self.receivers[self.remotes.index(app)].ws_connection, type(None)):
+            if isinstance(
+                    self.receivers[self.remotes.index(app)].ws_connection,
+                    type(None)):
                 return False
             return self.receivers[self.remotes.index(app)]
         except Exception:
@@ -123,8 +127,7 @@ class App(object):
         self.buf = {}
 
 
-class CreateChannel (threading.Thread):
-
+class CreateChannel(threading.Thread):
     def __init__(self, name, data, lock):
         threading.Thread.__init__(self)
         self.name = name
@@ -140,7 +143,6 @@ class CreateChannel (threading.Thread):
 
 
 class ServiceChannel(tornado.websocket.WebSocketHandler):
-
     '''
     ws /connection
     From 1st screen app
@@ -204,7 +206,6 @@ class ServiceChannel(tornado.websocket.WebSocketHandler):
 
 
 class WSC(tornado.websocket.WebSocketHandler):
-
     def open(self, app=None):
         self.app = App.get_instance(app)
         self.cname = self.__class__.__name__
@@ -214,7 +215,7 @@ class WSC(tornado.websocket.WebSocketHandler):
 
     def on_message(self, message):
         if Environment.verbosity is logging.DEBUG:
-            if not('ping' in message or 'pong' in message):
+            if not ('ping' in message or 'pong' in message):
                 pretty = json.loads(message)
                 message = json.dumps(
                     pretty, sort_keys=True, indent=2)
@@ -228,7 +229,6 @@ class WSC(tornado.websocket.WebSocketHandler):
 
 
 class ReceiverChannel(WSC):
-
     '''
     ws /receiver/$app
     From 1st screen app
@@ -267,7 +267,6 @@ class ReceiverChannel(WSC):
 
 
 class ApplicationChannel(WSC):
-
     '''
     ws /session/$app
     From 2nd screen app
@@ -316,7 +315,6 @@ class ApplicationChannel(WSC):
 
 
 class CastPlatform(tornado.websocket.WebSocketHandler):
-
     '''
     Remote control over WebSocket.
 

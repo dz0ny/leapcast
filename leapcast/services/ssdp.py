@@ -2,11 +2,10 @@
 
 from __future__ import unicode_literals
 
-import socket
 import logging
 from SocketServer import DatagramRequestHandler
 
-from leapcast.utils import render, MulticastServer
+from leapcast.utils import render, MulticastServer, get_remote_ip
 from leapcast.environment import Environment
 
 
@@ -27,22 +26,12 @@ class SSDPHandler(DatagramRequestHandler):
         self.datagramReceived(data, self.client_address)
 
     def reply(self, data, address):
-        socket = self.request[1]
-        socket.sendto(data, address)
-
-    def get_remote_ip(self, address):
-        # Create a socket to determine what address the client should
-        # use
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(address)
-        iface = s.getsockname()[0]
-        s.close()
-        return unicode(iface)
+        self.request[1].sendto(data, address)
 
     def datagramReceived(self, datagram, address):
         if "urn:dial-multiscreen-org:service:dial:1" in datagram and "M-SEARCH" in datagram:
             data = render(self.header).generate(
-                ip=self.get_remote_ip(address),
+                ip=get_remote_ip(address),
                 uuid=Environment.uuid
             )
             self.reply(data, address)

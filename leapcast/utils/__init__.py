@@ -101,3 +101,13 @@ class MulticastServer(ControlMixin, ThreadingUDPServer):
 
     def server_close(self):
         self.handle_membership(socket.IP_DROP_MEMBERSHIP)
+
+
+def get_remote_ip(address):
+    # Create a socket to determine what address the client should
+    # use
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.connect(address)
+    iface = s.getsockname()[0]
+    s.close()
+    return unicode(iface)

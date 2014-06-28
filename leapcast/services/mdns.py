@@ -1,7 +1,6 @@
 # -*- coding: utf8 -*-
 
 from __future__ import unicode_literals
-import socket
 import struct
 import logging
 from SocketServer import DatagramRequestHandler
@@ -12,6 +11,7 @@ from dnslib import PTR, QTYPE, RR, DNSRecord, SRV, A, RD, DNSHeader, \
 
 from leapcast.environment import Environment
 from leapcast.services.ssdp import MulticastServer
+from leapcast.utils import get_remote_ip
 
 
 def mDNSHeader():
@@ -81,10 +81,11 @@ def RRlist2bitmap(lst):
         # Generate the bitmap
         for tmp in xrange(bytes):
             v = 0
-            # Remove out of range Ressource Records
-            tmp_rrlist = filter(lambda
-                                    x: 256 * wb + 8 * tmp <= x and x < 256 * wb + 8 * tmp + 8,
-                                rrlist)
+            # Remove out of range Resource Records
+            tmp_rrlist = filter(
+                lambda x:
+                256 * wb + 8 * tmp <= x < 256 * wb + 8 * tmp + 8,
+                rrlist)
             if not tmp_rrlist == []:
                 # 1. rescale to fit into 8 bits
                 tmp_rrlist = map(lambda x: (x - 256 * wb) - (tmp * 8),
@@ -109,22 +110,17 @@ class NSEC(RD):
         else:
             self._target = DNSLabel(target)
 
-
     def get_target(self):
         return self._target
 
-
     target = property(get_target, set_target)
-
 
     def pack(self, buffer):
         buffer.encode_name(self.target)
         buffer.append(self.bitmap)
 
-
     def __repr__(self):
         return "%s" % self.target
-
 
     attrs = 'target'
 
@@ -202,17 +198,7 @@ class MDNSHandler(DatagramRequestHandler):
         self.datagramReceived(data, self.client_address)
 
     def reply(self, data, address):
-        socket = self.request[1]
-        socket.sendto(data, address)
-
-    def get_remote_ip(self, address):
-        # Create a socket to determine what address the client should
-        # use
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(address)
-        iface = s.getsockname()[0]
-        s.close()
-        return unicode(iface)
+        self.request[1].sendto(data, address)
 
     def datagramReceived(self, datagram, address):
         if not len(datagram) > 0:
@@ -226,7 +212,7 @@ class MDNSHandler(DatagramRequestHandler):
 
         if '_googlecast._tcp.local' in str(query.get_qname()) and 12 == query \
                 .qtype and query.qclass == 1:
-            ip = self.get_remote_ip(address)
+            ip = get_remote_ip(address)
             name = Environment.friendlyName
             logging.info('MDNS Response for %s %s' % address)
             res = mDNSResponse(name, ip, 3600)

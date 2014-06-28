@@ -13,12 +13,23 @@ def _get_chrome_path():
     if sys.platform == 'win32':
         # First path includes fallback for Windows XP, because it doesn't have
         # LOCALAPPDATA variable.
-        globs = [os.path.join(
-            os.getenv(
-                'LOCALAPPDATA', os.path.join(os.getenv('USERPROFILE'), 'Local Settings\\Application Data')), 'Google\\Chrome\\Application\\chrome.exe'),
-            os.path.join(os.getenv('ProgramW6432', 'C:\\Program Files'),
-                         'Google\\Chrome\\Application\\chrome.exe'),
-            os.path.join(os.getenv('ProgramFiles(x86)', 'C:\\Program Files (x86)'), 'Google\\Chrome\\Application\\chrome.exe')]
+        globs = [
+            os.path.join(
+                os.getenv('LOCALAPPDATA', os.path.join(
+                    os.getenv('USERPROFILE'),
+                    'Local Settings\\Application Data'
+                )),
+                'Google\\Chrome\\Application\\chrome.exe'
+            ),
+            os.path.join(
+                os.getenv('ProgramW6432', 'C:\\Program Files'),
+                'Google\\Chrome\\Application\\chrome.exe'
+            ),
+            os.path.join(
+                os.getenv('ProgramFiles(x86)', 'C:\\Program Files (x86)'),
+                'Google\\Chrome\\Application\\chrome.exe'
+            )
+        ]
     elif sys.platform == 'darwin':
         globs = [
             '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome']

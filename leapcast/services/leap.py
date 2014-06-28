@@ -1,19 +1,21 @@
 from __future__ import unicode_literals
 
-import tornado.ioloop
-import tornado.web
-import tornado.websocket
 import logging
 import json
 import requests
+
+import tornado.ioloop
+import tornado.web
+import tornado.websocket
+
 from leapcast.services.dial import DeviceHandler, ChannelFactory, SetupHandler
-from leapcast.services.websocket import ServiceChannel, ReceiverChannel, ApplicationChannel, CastPlatform
+from leapcast.services.websocket import ServiceChannel, ReceiverChannel, \
+    ApplicationChannel, CastPlatform
 from leapcast.services.leap_factory import LEAPfactory
 from leapcast.environment import Environment
 
 
 class LEAPserver(object):
-
     def start(self):
         logging.info('Starting LEAP server')
         routes = [
@@ -62,7 +64,8 @@ class LEAPserver(object):
                 continue
             logging.info('Added %s app' % name)
             url = app['url']
-            url = url.replace("${{URL_ENCODED_POST_DATA}}", "{{ query }}").replace(
+            url = url.replace("${{URL_ENCODED_POST_DATA}}",
+                              "{{ query }}").replace(
                 "${POST_DATA}", "{{ query }}")
             # this doesn't support all params yet, but seems to work with
             # youtube, chromecast and play music.

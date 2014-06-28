@@ -8,11 +8,11 @@ import logging
 import sys
 from os import environ
 
-
 from leapcast.environment import parse_cmd, Environment
 from leapcast.services.leap import LEAPserver
 from leapcast.services.mdns import MDNSserver
 from leapcast.services.ssdp import SSDPserver
+
 
 logger = logging.getLogger('Leapcast')
 
@@ -41,6 +41,7 @@ def main():
 
     leap_server = LEAPserver()
     leap_server.start()
+
 
 if __name__ == "__main__":
     main()
