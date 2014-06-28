@@ -1,9 +1,22 @@
 language: python
+
 python:
-- '2.7'
-install: pip install flake8 -r requirements.txt
+  - "2.7_with_system_site_packages"
+
+env:
+  - TOX_ENV=py27
+  - TOX_ENV=flake8
+
+install:
+  - "sudo apt-get update || true"
+  - "pip install tox"
+
 script:
-- make test
+  - "tox -e $TOX_ENV"
+
+after_success:
+  - "if [ $TOX_ENV == 'py27' ]; then pip install coveralls; coveralls; fi"
+
 deploy:
   provider: pypi
   user: janez.troha
