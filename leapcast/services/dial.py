@@ -1,10 +1,11 @@
 from __future__ import unicode_literals
 
+import tornado.web
+
 import leapcast
 from leapcast.environment import Environment
 from leapcast.services.websocket import App
 from leapcast.utils import render
-import tornado.web
 
 
 class DeviceHandler(tornado.web.RequestHandler):
@@ -99,7 +100,7 @@ class SetupHandler(tornado.web.RequestHandler):
 
     # Chromium OS's network_DestinationVerification.py has a verify test that
     # shows that it is possible to verify signed_data by:
-    #   echo "<signed_data>" | base64 -d | openssl rsautl -verify -inkey <certificate> -certin -asn1parse
+    # echo "<signed_data>" | base64 -d | openssl rsautl -verify -inkey <certificate> -certin -asn1parse
     # The signed string should match:
     #   echo -n "<name>,<ssdp_udn>,<hotspot_bssid>,<public_key>,<nonce>" | openssl sha1 -binary | hd
 
@@ -158,7 +159,7 @@ class SetupHandler(tornado.web.RequestHandler):
 
     def post(self, module=None):
         if ((len(Environment.ips) == 0) | (
-            self.request.remote_ip in Environment.ips)):
+                    self.request.remote_ip in Environment.ips)):
             if module == "scan_wifi":
                 pass
             elif module == "set_eureka_info":

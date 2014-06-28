@@ -151,6 +151,7 @@ def mDNSResponse(name, ip, ttl):
         rdata=PTR("%s._googlecast._tcp.local" % name),
         ttl=ttl
     ))
+    # TODO: Use generated id
     res.add_ar(RR(
         "%s._googlecast._tcp.local" % name,
         QTYPE.TXT,
