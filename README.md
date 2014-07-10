@@ -5,36 +5,15 @@
 
 # Chromecast API v2
 
-API was compleatly changed, 17. of march is also the date that old apps and apis are no longer supported and will be gradualy upgraded to new API. 
-
 In order to get it working again, we need to:
 
-- Implement MDNS discovery (DIAL has be deprecated)
-- Implement encryption of packets (mayor pain, because android SDK and web, now check for certificate issuer)
-- RAMP protocol has been extended and most of the old methods are no longer used (ping is the only one remaining)
-- Websocket technology is still used, but packets are encypted using public key cryptography (public key is advertised during discovery) 
-
-
-Simple ChromeCast emulation app.
+- [x] Implement MDNS discovery (done)
+- [ ] Implement Chrome Cast channel on port 8009 (https://code.google.com/p/chromium/codesearch#chromium/src/chrome/browser/extensions/api/cast_channel/&sq=package:chromium&type=cs)
 
 Working:
-
- - Discovery (DIAL protocol http://www.dial-multiscreen.org/)
  - Youtube (with https://play.google.com/store/apps/details?id=com.google.android.youtube)
- - Google Music (with https://play.google.com/store/apps/details?id=com.google.android.music)
- - HBO GO (with https://play.google.com/store/apps/details?id=com.HBO)
- - Hulu Plus (with https://play.google.com/store/apps/details?id=com.hulu.plus)
- - Pandora (with https://play.google.com/store/apps/details?id=com.pandora.android )
- - RedBull TV (with https://play.google.com/store/apps/details?id=com.nousguide.android.rbtv)
- - Others (see http://en.wikipedia.org/wiki/Chromecast#Chrome_and_mobile_apps)
- 
-On real device enabled apps are fetched from https://clients3.google.com/cast/chromecast/device/config .
-Bugs in ChromeCast SDK are listed at https://code.google.com/p/google-cast-sdk/issues/list?can=2&q=&sort=priority&colspec=ID%20Type%20Status%20Priority%20Milestone%20Owner%20Summary 
 
-Some known bugs in ChromeCast SDK:
- 
- - Discovery fails on some devices with multiple unactive network interfaces 
- - Scanning crashes device or app with ConcurrentModificationException 
+Other apps are not supported because Chromecast now uses V2 of protocol. 
 
 ## Authors
 
