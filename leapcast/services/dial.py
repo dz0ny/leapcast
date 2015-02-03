@@ -75,7 +75,7 @@ class SetupHandler(tornado.web.RequestHandler):
         "connected":true,
         "detail":{
             "locale":{"display_string":"English (United States)"},
-            "timezone":{"display_string":"America/Los Angeles",offset:-480}
+            "timezone":{"display_string":"America/Los Angeles","offset":-480}
         },
         "has_update":false,
         "hdmi_control":true,
