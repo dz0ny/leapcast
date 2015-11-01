@@ -26,7 +26,8 @@ def _get_chrome_path():
         globs = ['/usr/bin/google-chrome',
                  '/opt/google/chrome/google-chrome',
                  '/opt/google/chrome-*/google-chrome',
-                 '/usr/bin/chromium-browser']
+                 '/usr/bin/chromium-browser',
+                 '/usr/bin/chromium']
     for g in globs:
         for path in glob.glob(g):
             if os.path.exists(path):
